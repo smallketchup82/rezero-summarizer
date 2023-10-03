@@ -4,6 +4,7 @@ import tqdm
 import tiktoken
 from distutils.util import strtobool
 import time
+import os
 enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
 from dotenv import load_dotenv
@@ -11,8 +12,8 @@ load_dotenv()
 
 import re
 
-openai.api_key = "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"
-openai.organization = "org-o2qPchMFXjCqioXPTN4pnJot"
+openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.organization = os.getenv("OPENAI_ORG")
 
 parser = argparse.ArgumentParser(description='AI Re:Zero Web Novel Summarizer')
 parser.add_argument("-c", "--chapter", type=str, help="Chapter number to summarize. Leave blank to summarize all chapters.", default=None)
