@@ -6,26 +6,33 @@ from distutils.util import strtobool
 import time
 import os
 import warnings
-enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
+import re
+from colorama import Fore, Back, Style, init
+init(autoreset=True)
 
 from dotenv import load_dotenv
 load_dotenv()
 
-import re
+enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 openai.organization = os.getenv("OPENAI_ORG")
 
-parser = argparse.ArgumentParser(description='AI Re:Zero Web Novel Summarizer', prog="sumzero")
+parser = argparse.ArgumentParser(prog="sumzero", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-c", "--chapter", type=str, help="Chapter to summarize. Leave blank to summarize all chapters.", default=None)
-parser.add_argument("-o", "--output", type=str, help="Output file path. Defaults to Summary.txt", default="Summary.txt")
-parser.add_argument("-v", "--verbose", help="Verbose mode. Defaults to true", action="store_true")
-parser.add_argument("--dump", help="Dump the entire processed text into a file. Defaults to false", action="store_true")
-parser.add_argument("-f", "--force", help="Overwrite the output file if it already exists. Defaults to false", action="store_true")
+parser.add_argument("-i", "--input", type=str, help="Input file path", default="Arc 7.txt")
+parser.add_argument("-o", "--output", type=str, help="Output folder path", default="output")
+parser.add_argument("-v", "--verbose", help="Verbose mode", action="store_true")
+parser.add_argument("--dump", help="Dump the entire processed text into a file", action="store_true")
+parser.add_argument("-f", "--force", help="Overwrite the output file if it already exists", action="store_true")
 parser.add_argument("-s", "--skip", help="Skip the countdown (Not recommended)", action="store_true")
+parser.add_argument("--dry-run", help="Don't actually summarize anything", action="store_true")
 args = parser.parse_args()
 
-file = open("Arc 7.txt", "r", encoding="utf-8")
+outputdir = os.path.abspath(args.output) if args.output else os.path.join(os.getcwd(), "output")
+os.makedirs(outputdir, exist_ok=True)
+
+file = open(args.input, "r", encoding="utf-8")
 text = file.read()
 text = re.sub(r"^.*?(?=Arc 7 Chapter 1 – Initiation).+(?=Arc 7 Chapter 1 – Initiation)", "", text, flags=re.S | re.I) # Remove the table of contents
 texts = re.split(r"(?=Arc 7 Chapter \w.*$)|△▼△▼△▼△", text, flags=re.M | re.I) # Split the text into chapters and parts
@@ -68,9 +75,9 @@ for i in range(len(texts)):
     if "Chapter" in firstline:
         texts[i] = re.sub(r"(Arc 7 Chapter \w+ – [^\n\r]*\n?)(.* ― Complete\n?)", r"\1", texts[i], flags=re.S | re.I)
         
-
+# Dump the processed text into a file if requested, for debugging purposes
 if args.dump:
-    with open("Arc 7 processed.txt", "w", encoding="utf-8") as file:
+    with open(os.path.join(outputdir, "Arc 7 Processed.txt"), "w", encoding="utf-8") as file:
         file.write("\n\n".join(texts))
         print("Dumped processed text to file")
         exit()
@@ -79,7 +86,7 @@ if not args.skip:
     print("Starting summarization in 5 seconds...")
     time.sleep(5)
 
-# Summarize process
+# Summarizer process
 def summarize(i):
     prompt = "\n<END>\n\nCreate a comprehensive plot synopsis of this part of a chapter from a book.\nMake your plot synopsis as lengthy and detailed as possible."
     tokens = len(enc.encode(texts[i])) + len(enc.encode(prompt))
@@ -94,8 +101,8 @@ def summarize(i):
     else:
         warnings.warn(f"Index {str(i)} is too long. Skipping...")
     
-    print("\n" + texts[i].split("\n")[0]) # Print the chapter title
-    print(f"Index: {i} | Model: {model} | Tokens: {tokens} | Words: {len(total.split())} | Characters: {len(total)}\n") # Print info
+    print(Fore.CYAN + "\n" + texts[i].split("\n")[0].center(os.get_terminal_size().columns)) # Print the chapter title
+    print(Fore.CYAN + f"Index: {i} | Model: {model} | Tokens: {tokens} | Words: {len(total.split())} | Characters: {len(total)}\n".center(os.get_terminal_size().columns)) # Print info
     
     try:
         APIsummary = openai.ChatCompletion.create(
@@ -115,7 +122,6 @@ def summarize(i):
     summary = APIsummary['choices'][0]['message']['content']
     if summary == "":
         warnings.warn(f"Summary for index {str(i)} is empty!")
-    
     return summary
 
 # Handle individual chapters
@@ -123,8 +129,8 @@ def handleIndividualChapter(chapter):
     actualchapter = None
     indices = []
     
-    print("Searching for chapter...")
-    for i in tqdm.trange(len(texts)):
+    print(Fore.YELLOW + "[-] " + "Searching for chapter...")
+    for i in range(len(texts)):
         if f"Chapter {chapter} " in texts[i]:
             indices.append(i)
         else:
@@ -135,28 +141,37 @@ def handleIndividualChapter(chapter):
     
     actualchapter = indices[0]
     
-    print(f"Found Chapter {chapter} at Index {actualchapter}")
+    print(Fore.GREEN + "[✓] " + f"Found Chapter {chapter} at Index {actualchapter}!")
     
-    if args.force and os.path.exists(f"./Chapter {chapter} Summary.txt"):
-        os.remove(f"./Chapter {chapter} Summary.txt")
+    if args.force and os.path.exists(os.path.join(outputdir, f"Chapter {chapter} Summary.txt")):
+        os.remove(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"))
+    elif os.path.exists(os.path.join(outputdir, f"Chapter {chapter} Summary.txt")):
+        warnings.warn(f"Chapter {chapter} Summary.txt already exists. Will append to the file!")
     
-    for i in tqdm.trange(len(indices)):
+    print(Fore.YELLOW + "[-] " + "Summarizing...")
+    print("-" * os.get_terminal_size().columns)
+    
+    for i in tqdm.trange(len(indices), unit="part"):
         i = indices[i]
-        summary = summarize(i)
+        if not args.dry_run:
+            summary = summarize(i)
+        else:
+            summary = "Dry run"
+            time.sleep(1)
         
         if args.verbose:
-            print('------------------------------------------------\nSummary')
+            print(Fore.GREEN + 'Summary'.center(os.get_terminal_size().columns))
             print(summary)
-            print(f"Words: {len(summary.split())} | Characters: {len(summary)}")
-            print("------------------------------------------------")
+            print(Fore.CYAN + f"Words: {len(summary.split())} | Characters: {len(summary)}".center(os.get_terminal_size().columns))
+            print("-" * os.get_terminal_size().columns)
         
         # Write to file
-        with open(f"Chapter {chapter} Summary.txt", "a", encoding="utf-8") as file:
+        with open(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"), "a", encoding="utf-8") as file:
             firstline = texts[i].split("\n")[0]
             file.write(f"{firstline}\n{summary}\n\n\n")
             
     # Remove whitespace
-    with open(f"Chapter {chapter} Summary.txt", "r+", encoding="utf-8") as file:
+    with open(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"), "r+", encoding="utf-8") as file:
         fart = file.read()
         fart = fart.strip()
         file.seek(0)
@@ -167,30 +182,33 @@ def handleIndividualChapter(chapter):
 
 # If the user specified a chapter, handle that chapter. Otherwise, summarize all chapters.
 if args.chapter:
-    chapters = re.split(",|, ", args.chapter)
-    print("Handling chapters " + ", ".join(chapters))
+    chapters = str(args.chapter).split(",")
+    print(Fore.YELLOW + "[-] " + "Handling chapter(s) " + ", ".join(chapters))
     
     for chapter in chapters:
-        print("Handling chapter " + chapter)
+        print(Fore.YELLOW + "\n[-] " + "Processing chapter " + chapter + "...")
         handleIndividualChapter(chapter.strip())
+        print(Fore.GREEN + "[✓] " + "Processed chapter " + chapter + "!")
+    
+    print(Fore.GREEN + "[✓] " + "Done!")
 else:
-    if args.force and os.path.exists("Summary.txt"):
-        os.remove("Summary.txt")
+    if args.force and os.path.exists(os.path.join(outputdir, "Summary.txt")):
+        os.remove(os.path.join(outputdir, "Summary.txt"))
         
     for i in tqdm.trange(len(texts)):
-        summary = summarize(i)
+        summary = summarize(i) if not args.dry_run else "Dry run"
         
         if args.verbose:
             print('\n------------------------------------------------\nSummary:')
             print(summary)
             print("------------------------------------------------")
             
-        with open("Summary.txt", "a", encoding="utf-8") as file:
+        with open(os.path.join(outputdir, "Summary.txt"), "a", encoding="utf-8") as file:
             firstline = texts[i].split("\n")[0]
             file.write(f"{firstline}\n{summary}\n\n\n")
             
     # Remove whitespace
-    with open("Summary.txt", "r+", encoding="utf-8") as file:
+    with open(os.path.join(outputdir, "Summary.txt"), "r+", encoding="utf-8") as file:
         fart = file.read()
         fart = fart.strip()
         file.seek(0)
