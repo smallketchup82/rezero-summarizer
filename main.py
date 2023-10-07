@@ -89,8 +89,8 @@ if not args.skip:
 # Summarizer process
 def summarize(i):
     prompt = "\n<END>\n\nCreate a comprehensive plot synopsis of this part of a chapter from a book.\nMake your plot synopsis as lengthy and detailed as possible."
-    tokens = len(enc.encode(texts[i])) + len(enc.encode(prompt))
     total = texts[i] + prompt
+    tokens = len(enc.encode(total))
     
     if tokens < 3097:
         model = "gpt-3.5-turbo"
