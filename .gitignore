@@ -2,3 +2,5 @@ venv/
 .env
 *Summary.txt
 output/
+build/
+dist/
