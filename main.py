@@ -20,7 +20,7 @@ openai.organization = os.getenv("OPENAI_ORG")
 
 parser = argparse.ArgumentParser(prog="sumzero", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-c", "--chapter", type=str, help="Chapter to summarize. Leave blank to summarize all chapters.", default=None)
-parser.add_argument("-i", "--input", type=str, help="Input file path", default="Arc 7.txt")
+parser.add_argument("-i", "--input", type=str, help="The path to the .txt file of the arc. Required", required=True)
 parser.add_argument("-o", "--output", type=str, help="Output folder path", default="output")
 parser.add_argument("-v", "--verbose", help="Verbose mode", action="store_true")
 parser.add_argument("--dump", help="Dump the entire processed text into a file", action="store_true")
