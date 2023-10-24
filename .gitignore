@@ -4,3 +4,4 @@ venv/
 output/
 build/
 dist/
+Arc*.txt
