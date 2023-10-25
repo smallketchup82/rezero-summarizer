@@ -19,6 +19,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 openai.organization = os.getenv("OPENAI_ORG")
 
 parser = argparse.ArgumentParser(prog="sumzero", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("arc", type=str, help="The arc to summarize. Use -c to point to specific chapters", default=None)
 parser.add_argument("-c", "--chapter", type=str, help="Chapter to summarize. Leave blank to summarize all chapters.", default=None)
 parser.add_argument("-i", "--input", type=str, help="The path to the .txt file of the arc. Required", required=True)
 parser.add_argument("-o", "--output", type=str, help="Output folder path", default="output")
@@ -34,9 +35,16 @@ os.makedirs(outputdir, exist_ok=True)
 
 file = open(args.input, "r", encoding="utf-8")
 text = file.read()
-text = re.sub(r"^.*?(?=Arc 7 Chapter 1 – Initiation).+(?=Arc 7 Chapter 1 – Initiation)", "", text, flags=re.S | re.I) # Remove the table of contents
-texts = re.split(r"(?=Arc 7 Chapter \w.*$)|△▼△▼△▼△", text, flags=re.M | re.I) # Split the text into chapters and parts
-texts = list(filter(None, texts)) # Remove empty strings from the list
+
+# Split the whole arc into chapters and parts
+if args.arc == "6":
+    text = re.sub(r"^.*?(?=Arc 6 Chapter 1 – The Dragon Carriage’s Way Back).+(?=Arc 6 Chapter 1 – The Dragon Carriage’s Way Back)", "", text, flags=re.S | re.I) # Remove the table of contents
+    texts = re.split(r"(?=Arc 6 Chapter \w.*$)|※　※　※　※　※　※　※　※　※　※　※　※　※", text, flags=re.M | re.I) # Split the text into chapters and parts
+    texts = list(filter(None, texts)) # Remove empty strings from the list
+elif args.arc == "7":
+    text = re.sub(r"^.*?(?=Arc 7 Chapter 1 – Initiation).+(?=Arc 7 Chapter 1 – Initiation)", "", text, flags=re.S | re.I) # Remove the table of contents
+    texts = re.split(r"(?=Arc 7 Chapter \w.*$)|△▼△▼△▼△", text, flags=re.M | re.I) # Split the text into chapters and parts
+    texts = list(filter(None, texts)) # Remove empty strings from the list
 
 # Remove illustration captions
 for i in range(len(texts)):
@@ -63,7 +71,7 @@ for i in range(len(texts)):
     
     if "Chapter" in firstline and not "Part" in firstline:
         part = 1
-        chapter = str(re.search(r"(?<=Chapter )\w+", firstline).group(0))
+        chapter = str(re.search(r"(?<=Chapter )\w", firstline).group(0))
         
     if not "Chapter" in firstline:
         part += 1
@@ -73,11 +81,11 @@ for i in range(len(texts)):
 for i in range(len(texts)):
     firstline = texts[i].split("\n")[0]
     if "Chapter" in firstline:
-        texts[i] = re.sub(r"(Arc 7 Chapter \w+ – [^\n\r]*\n?)(.* ― Complete\n?)", r"\1", texts[i], flags=re.S | re.I)
+        texts[i] = re.sub(r"(Arc {} Chapter \w+ – [^\n\r]*\n?)(.* ― Complete\n?)".format(args.arc), r"\1", texts[i], flags=re.S | re.I)
         
 # Dump the processed text into a file if requested, for debugging purposes
 if args.dump:
-    with open(os.path.join(outputdir, "Arc 7 Processed.txt"), "w", encoding="utf-8") as file:
+    with open(os.path.join(outputdir, f"Arc {args.arc} Processed.txt"), "w", encoding="utf-8") as file:
         file.write("\n\n".join(texts))
         print("Dumped processed text to file")
         exit()
