@@ -7,6 +7,7 @@ import time
 import os
 import warnings
 import re
+from version import __version__
 from colorama import Fore, Back, Style, init
 init(autoreset=True)
 
@@ -15,10 +16,8 @@ load_dotenv()
 
 enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-openai.organization = os.getenv("OPENAI_ORG")
-
 parser = argparse.ArgumentParser(prog="sumzero", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
 parser.add_argument("-c", "--chapter", type=str, help="Chapter to summarize. Leave blank to summarize all chapters.", default=None)
 parser.add_argument("-i", "--input", type=str, help="The path to the .txt file of the arc. Required", required=True)
 parser.add_argument("-o", "--output", type=str, help="Output folder path", default="output")
@@ -27,15 +26,28 @@ parser.add_argument("--dump", help="Dump the entire processed text into a file",
 parser.add_argument("-f", "--force", help="Overwrite the output file if it already exists", action="store_true")
 parser.add_argument("-s", "--skip", help="Skip the countdown (Not recommended)", action="store_true")
 parser.add_argument("--dry-run", help="Don't actually summarize anything", action="store_true")
+parser.add_argument("--api-key", type=str, help="OpenAI API key. If not specified, will use the OPENAI_API_KEY environment variable", default=None)
+parser.add_argument("--org", type=str, help="OpenAI organization. If not specified, will use the OPENAI_ORG environment variable", default=None)
+parser.add_argument("-t", "--temperture", type=float, help="The temperature to use for the API call. Default is recommened but tune it as you wish", default=0.0)
 args = parser.parse_args()
+
+openai.api_key = args.api_key or os.getenv("OPENAI_API_KEY")
+openai.organization = args.org or os.getenv("OPENAI_ORG")
+
+if not "7" in args.input:
+    print("This script is meant to summarize Arc 7. Are you sure you want to continue?")
+    if not strtobool(input("Continue? (y/n): ")):
+        exit()
 
 outputdir = os.path.abspath(args.output) if args.output else os.path.join(os.getcwd(), "output")
 os.makedirs(outputdir, exist_ok=True)
 
 file = open(args.input, "r", encoding="utf-8")
 text = file.read()
+
+# TODO: Make this work for all arcs (currently only works for Arc 7)
 text = re.sub(r"^.*?(?=Arc 7 Chapter 1 – Initiation).+(?=Arc 7 Chapter 1 – Initiation)", "", text, flags=re.S | re.I) # Remove the table of contents
-texts = re.split(r"(?=Arc 7 Chapter \w.*$)|△▼△▼△▼△", text, flags=re.M | re.I) # Split the text into chapters and parts
+texts = re.split(r"(?=Arc 7 Chapter \w.*$)|△▼△▼△▼△|※　※　※　※　※　※　※　※　※　※　※　※　※", text, flags=re.M | re.I) # Split the text into chapters and parts
 texts = list(filter(None, texts)) # Remove empty strings from the list
 
 # Remove illustration captions
@@ -83,7 +95,7 @@ if args.dump:
         exit()
 
 if not args.skip:
-    print("Starting summarization in 5 seconds...")
+    print("Starting summarization in 5 seconds...\nPlease terminate now (Ctrl+C) if unintended.")
     time.sleep(5)
 
 # Summarizer process
@@ -108,7 +120,7 @@ def summarize(i):
         APIsummary = openai.ChatCompletion.create(
             model=model,
             max_tokens=max_tokens,
-            temperature=0,
+            temperature=args.temperature,
             messages=[
                 {
                     "role": "user",
