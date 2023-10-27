@@ -28,7 +28,7 @@ parser.add_argument("-s", "--skip", help="Skip the countdown (Not recommended)",
 parser.add_argument("--dry-run", help="Don't actually summarize anything", action="store_true")
 parser.add_argument("--api-key", type=str, help="OpenAI API key. If not specified, will use the OPENAI_API_KEY environment variable", default=None)
 parser.add_argument("--org", type=str, help="OpenAI organization. If not specified, will use the OPENAI_ORG environment variable", default=None)
-parser.add_argument("-t", "--temperture", type=float, help="The temperature to use for the API call. Default is recommened but tune it as you wish", default=0.0)
+parser.add_argument("-t", "--temperature", type=float, help="The temperature to use for the API call. Default is recommened but tune it as you wish", default=0.0)
 args = parser.parse_args()
 
 openai.api_key = args.api_key or os.getenv("OPENAI_API_KEY")
