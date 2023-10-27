@@ -48,7 +48,7 @@ text = file.read()
 arcnumber = re.search(r"(?<=Arc )\d+", text).group(0) # Looks for the first reference of the arc and the number, and assumes that this is the arc number
 
 # Split the whole arc into chapters and parts
-text = re.sub(r"^.*?(?=Arc .+ Chapter 1 – Initiation).+(?=Arc .+ Chapter 1 – Initiation)", "", text, flags=re.S | re.I) # Remove the table of contents
+text = re.sub(r"^.*?(?=Arc .+ Chapter 1 –).+(?=Arc .+ Chapter 1 –)", "", text, flags=re.S | re.I) # Remove the table of contents by finding fist entry in TOC and removing until that chapter starts
 texts = re.split(r"(?=Arc .+ Chapter \w.*$)|△▼△▼△▼△|※　※　※　※　※　※　※　※　※　※　※　※　※", text, flags=re.M | re.I) # Split the text into chapters and parts
 texts = list(filter(None, texts)) # Remove empty strings from the list
 
