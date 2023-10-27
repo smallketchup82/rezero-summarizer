@@ -91,7 +91,7 @@ for i in range(len(texts)):
         
 # Dump the processed text into a file if requested, for debugging purposes
 if args.dump:
-    with open(os.path.join(outputdir, "Arc 7 Processed.txt"), "w", encoding="utf-8") as file:
+    with open(os.path.join(outputdir, f"Arc {arcnumber} Processed.txt"), "w", encoding="utf-8") as file:
         file.write("\n\n".join(texts))
         print("Dumped processed text to file")
         exit()
