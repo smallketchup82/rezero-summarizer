@@ -36,7 +36,7 @@ openai.organization = args.org or os.getenv("OPENAI_ORG")
 
 if not "7" in args.input:
     print("This script is meant to summarize Arc 7. Are you sure you want to continue?")
-    if not strtobool(input("Continue? (y/n): ")):
+    if not strtobool(input("Continue? (Y/n): ") or "true"):
         exit()
 
 outputdir = os.path.abspath(args.output) if args.output else os.path.join(os.getcwd(), "output")
