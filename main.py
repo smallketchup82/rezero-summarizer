@@ -8,6 +8,7 @@ import os
 import warnings
 import re
 from version import __version__
+import questionary
 from colorama import Fore, Back, Style, init
 init(autoreset=True)
 
@@ -18,7 +19,7 @@ enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
 parser = argparse.ArgumentParser(prog="sumzero", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
-parser.add_argument("-c", "--chapter", type=str, help="Chapter to summarize. Leave blank to summarize all chapters.", default=None)
+parser.add_argument("-c", "--chapter", help="Summarize specific chapters (opens up the chapter selector)", action="store_true")
 parser.add_argument("-i", "--input", type=str, help="The path to the .txt file of the arc. Required", required=True)
 parser.add_argument("-o", "--output", type=str, help="Output folder path", default="output")
 parser.add_argument("-v", "--verbose", help="Verbose mode", action="store_true")
@@ -194,7 +195,26 @@ def handleIndividualChapter(chapter):
 
 # If the user specified a chapter, handle that chapter. Otherwise, summarize all chapters.
 if args.chapter:
-    chapters = str(args.chapter).split(",")
+    chaptersinarc = []
+    
+    for i in range(len(texts)):
+        firstline = texts[i].split("\n")[0]
+        
+        if "Chapter" in firstline and not "Part" in firstline:
+            chaptersinarc.append(firstline)
+            
+    chapters = questionary.checkbox(
+        "Which chapter(s) do you want to summarize?",
+        choices=chaptersinarc,
+    ).ask()
+    
+    if chapters == None:
+        print("No chapters selected. Exiting...")
+        exit()
+    
+    for i in range(len(chapters)):
+        chapters[i] = str(re.search(r"(?<=Chapter )\w+", chapters[i]).group(0))
+    
     print(Fore.YELLOW + "[-] " + "Handling chapter(s) " + ", ".join(chapters))
     
     for chapter in chapters:
