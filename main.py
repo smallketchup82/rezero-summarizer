@@ -6,6 +6,7 @@ from distutils.util import strtobool
 import time
 import os
 import warnings
+import shutil
 import re
 from version import __version__
 import questionary
@@ -19,7 +20,7 @@ enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
 parser = argparse.ArgumentParser(prog="sumzero", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
-parser.add_argument("-c", "--chapter", help="Summarize specific chapters (opens up the chapter selector)", action="store_true")
+parser.add_argument("-m", "--merge", help="Merge all of the outputs into a single file", action="store_true")
 parser.add_argument("-i", "--input", type=str, help="The path to the .txt file of the arc. Required", required=True)
 parser.add_argument("-o", "--output", type=str, help="Output folder path", default="output")
 parser.add_argument("-v", "--verbose", help="Verbose mode", action="store_true")
@@ -41,6 +42,9 @@ if not "7" in args.input:
         exit()
 
 outputdir = os.path.abspath(args.output) if args.output else os.path.join(os.getcwd(), "output")
+if args.merge:
+    originaloutputdir = outputdir
+    outputdir = os.path.join(outputdir, "temp")
 os.makedirs(outputdir, exist_ok=True)
 
 file = open(args.input, "r", encoding="utf-8")
@@ -192,65 +196,61 @@ def handleIndividualChapter(chapter):
         file.truncate()
         file.close()
 
+chaptersinarc = []
 
-# If the user specified a chapter, handle that chapter. Otherwise, summarize all chapters.
-if args.chapter:
-    chaptersinarc = []
+# Get all chapters in the arc and add them to a list
+for i in range(len(texts)):
+    firstline = texts[i].split("\n")[0]
     
-    # Get all chapters in the arc and add them to a list
-    for i in range(len(texts)):
-        firstline = texts[i].split("\n")[0]
+    if "Chapter" in firstline and not "Part" in firstline:
+        chaptersinarc.append(firstline)
+
+# Ask the user which chapters they want to summarize
+chapters: list | None = questionary.checkbox(
+    "Which chapter(s) do you want to summarize?",
+    choices=chaptersinarc,
+).ask()
+
+if chapters == None:
+    print("No chapters selected. Exiting...")
+    exit()
+
+# Get the chapter number from the chapter title
+for i in range(len(chapters)):
+    chapters[i] = str(re.search(r"(?<=Chapter )\w+", chapters[i]).group(0))
+
+# Sort the chapters in ascending order
+chapters.sort()
+
+print(Fore.YELLOW + "[-] " + "Handling chapter(s) " + ", ".join(chapters))
+
+if args.merge:
+    # Remove the temp folder if it already exists
+    if os.path.exists(outputdir):
+        shutil.rmtree(outputdir)
+        os.mkdir(outputdir)
         
-        if "Chapter" in firstline and not "Part" in firstline:
-            chaptersinarc.append(firstline)
+
+# Handle each chapter
+for chapter in chapters:
+    print(Fore.YELLOW + "\n[-] " + "Processing chapter " + chapter + "...")
+    handleIndividualChapter(chapter.strip())
+    print(Fore.GREEN + "[✓] " + "Processed chapter " + chapter + "!")
     
-    # Ask the user which chapters they want to summarize
-    chapters: list | None = questionary.checkbox(
-        "Which chapter(s) do you want to summarize?",
-        choices=chaptersinarc,
-    ).ask()
-    
-    if chapters == None:
-        print("No chapters selected. Exiting...")
-        exit()
-    
-    # Get the chapter number from the chapter title
-    for i in range(len(chapters)):
-        chapters[i] = str(re.search(r"(?<=Chapter )\w+", chapters[i]).group(0))
-    
-    # Sort the chapters in ascending order
-    chapters.sort()
-    
-    print(Fore.YELLOW + "[-] " + "Handling chapter(s) " + ", ".join(chapters))
-    
-    # Handle each chapter
-    for chapter in chapters:
-        print(Fore.YELLOW + "\n[-] " + "Processing chapter " + chapter + "...")
-        handleIndividualChapter(chapter.strip())
-        print(Fore.GREEN + "[✓] " + "Processed chapter " + chapter + "!")
-    
-    print(Fore.GREEN + "[✓] " + "Done!")
-else:
-    if args.force and os.path.exists(os.path.join(outputdir, "Summary.txt")):
-        os.remove(os.path.join(outputdir, "Summary.txt"))
+# Merge all of the files into a single file
+if args.merge:
+    print(Fore.YELLOW + "\n[-] " + "Merging files...")
+    with open(os.path.join(originaloutputdir, "Arc 7 Summary.txt"), "w", encoding="utf-8") as outfile:
+        for chapter in chapters:
+            with open(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"), "r", encoding="utf-8") as infile:
+                outfile.write(infile.read())
+                outfile.write("\n\n\n")
+                infile.close()
+        outfile.close()
         
-    for i in tqdm.trange(len(texts)):
-        summary = summarize(i) if not args.dry_run else "Dry run"
-        
-        if args.verbose:
-            print('\n------------------------------------------------\nSummary:')
-            print(summary)
-            print("------------------------------------------------")
-            
-        with open(os.path.join(outputdir, "Summary.txt"), "a", encoding="utf-8") as file:
-            firstline = texts[i].split("\n")[0]
-            file.write(f"{firstline}\n{summary}\n\n\n")
-            
-    # Remove whitespace
-    with open(os.path.join(outputdir, "Summary.txt"), "r+", encoding="utf-8") as file:
-        fart = file.read()
-        fart = fart.strip()
-        file.seek(0)
-        file.write(fart)
-        file.truncate()
-        file.close()
+    # Delete the temp folder
+    shutil.rmtree(outputdir)
+    
+    print(Fore.GREEN + "[✓] " + "Merged files!")
+
+print(Fore.GREEN + "[✓] " + "Done!")
