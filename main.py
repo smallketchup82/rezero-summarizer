@@ -197,13 +197,15 @@ def handleIndividualChapter(chapter):
 if args.chapter:
     chaptersinarc = []
     
+    # Get all chapters in the arc and add them to a list
     for i in range(len(texts)):
         firstline = texts[i].split("\n")[0]
         
         if "Chapter" in firstline and not "Part" in firstline:
             chaptersinarc.append(firstline)
-            
-    chapters = questionary.checkbox(
+    
+    # Ask the user which chapters they want to summarize
+    chapters: list | None = questionary.checkbox(
         "Which chapter(s) do you want to summarize?",
         choices=chaptersinarc,
     ).ask()
@@ -212,11 +214,16 @@ if args.chapter:
         print("No chapters selected. Exiting...")
         exit()
     
+    # Get the chapter number from the chapter title
     for i in range(len(chapters)):
         chapters[i] = str(re.search(r"(?<=Chapter )\w+", chapters[i]).group(0))
     
+    # Sort the chapters in ascending order
+    chapters.sort()
+    
     print(Fore.YELLOW + "[-] " + "Handling chapter(s) " + ", ".join(chapters))
     
+    # Handle each chapter
     for chapter in chapters:
         print(Fore.YELLOW + "\n[-] " + "Processing chapter " + chapter + "...")
         handleIndividualChapter(chapter.strip())
