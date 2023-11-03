@@ -9,6 +9,7 @@ import warnings
 import re
 from version import __version__
 from colorama import Fore, Back, Style, init
+from tenacity import retry, stop_after_delay, wait_random_exponential
 init(autoreset=True)
 
 from dotenv import load_dotenv
@@ -116,7 +117,9 @@ def summarize(i):
     print(Fore.CYAN + "\n" + texts[i].split("\n")[0].center(os.get_terminal_size().columns)) # Print the chapter title
     print(Fore.CYAN + f"Index: {i} | Model: {model} | Tokens: {tokens} | Words: {len(total.split())} | Characters: {len(total)}\n".center(os.get_terminal_size().columns)) # Print info
     
-    try:
+    # Retry if the API call fails. Will exponentially backoff and retry until 1 minute has passed. Then it will randomly backoff and retry until 5 minutes have passed. To which it will then give up and reraise the exception.
+    @retry (stop=stop_after_delay(300), wait=wait_random_exponential(multiplier=1, min=1, max=10), reraise=True)
+    def sendRequest():
         APIsummary = openai.ChatCompletion.create(
             model=model,
             max_tokens=max_tokens,
@@ -128,10 +131,10 @@ def summarize(i):
                 }
             ]
         )
-    except Exception as e:
-        raise Exception(f"Error at index {i}: {e}")
+        
+        return APIsummary
     
-    summary = APIsummary['choices'][0]['message']['content']
+    summary = sendRequest()['choices'][0]['message']['content']
     if summary == "":
         warnings.warn(f"Summary for index {str(i)} is empty!")
     return summary
