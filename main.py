@@ -98,8 +98,12 @@ if not args.skip:
     print("Starting summarization in 5 seconds...\nPlease terminate now (Ctrl+C) if unintended.")
     time.sleep(5)
 
-# Summarizer process
 def summarize(i):
+    """Summarizer process. Not meant to be called directly.
+
+    Args:
+        i (int): The index of the part of the chapter to summarize
+    """
     prompt = "\n<END>\n\nCreate a comprehensive plot synopsis of this part of a chapter from a book.\nMake your plot synopsis as lengthy and detailed as possible."
     total = texts[i] + prompt
     tokens = len(enc.encode(total))
@@ -136,8 +140,12 @@ def summarize(i):
         warnings.warn(f"Summary for index {str(i)} is empty!")
     return summary
 
-# Handle individual chapters
 def handleIndividualChapter(chapter):
+    """Handler for individual chapters
+
+    Args:
+        chapter (str | int): Index of the chapter to summarize
+    """
     actualchapter = None
     indices = []
     
