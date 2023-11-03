@@ -45,7 +45,9 @@ sumzero --help
 
 The defaults are the optimal settings for the summarizer. I don't recommend really recommend changing them, but you can if you want to.
 
-To give a list of chapters to summarize, pass them as comma seperated values (with no spaces). e.g. (1,2,3,4,5,6,7,8,9,10)
+Running the command will display a list of chapters in the arc. You can select which chapters you want to summarize by passing them as comma separated values (with no spaces).
+
+To summarize the entire arc, press "`a`" in the chapter selection menu and press enter. To merge the summaries into a single summary for the arc, pass the `--merge` `(-m)` flag.
 
 # How it works
 It's mostly just a ton of regex and string manipulation. Every chapter in the full arc downloads are split into parts. The summarizer will go through every chapter in the arc and identify the parts in the chapter. It then figures out how long each part is, and decides whether to use gpt-3.5-turbo or gpt-3.5-turbo-16k. It then generates a summary for each part, and combines them into a single summary for the chapter. If instructed to summarize the entire arc, it combines all of the chapter summaries into a single summary for the arc.
