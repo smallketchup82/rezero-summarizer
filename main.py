@@ -9,6 +9,7 @@ import warnings
 import re
 from version import __version__
 from colorama import Fore, Back, Style, init
+import time
 init(autoreset=True)
 
 from dotenv import load_dotenv
@@ -28,11 +29,22 @@ parser.add_argument("-s", "--skip", help="Skip the countdown (Not recommended)",
 parser.add_argument("--dry-run", help="Don't actually summarize anything", action="store_true")
 parser.add_argument("--api-key", type=str, help="OpenAI API key. If not specified, will use the OPENAI_API_KEY environment variable", default=None)
 parser.add_argument("--org", type=str, help="OpenAI organization. If not specified, will use the OPENAI_ORG environment variable", default=None)
-parser.add_argument("-t", "--temperature", type=float, help="The temperature to use for the API call. Default is recommened but tune it as you wish", default=0.0)
+parser.add_argument("-T", "--temperature", type=float, help="The temperature to use for the API call. Default is recommened but tune it as you wish", default=0.0)
+parser.add_argument("-t", "--tier", type=int, help="Specify what tier of the API you currently have. 0 = free, 1 = paid (but not tier 2), 2 = $50 paid and 7+ since first successful payment", default=2)
 args = parser.parse_args()
 
 openai.api_key = args.api_key or os.getenv("OPENAI_API_KEY")
 openai.organization = args.org or os.getenv("OPENAI_ORG")
+
+if args.tier == 0:
+    token_ratelimit = 20000 # tokens/min
+    request_ratelimit_per_minute = 3 # requests/min
+elif args.tier == 1:
+    token_ratelimit = 40000
+    request_ratelimit_per_minute = 500
+else: # tier 2
+    token_ratelimit = 80000
+    request_ratelimit_per_minute = 5000
 
 if not "7" in args.input:
     print("This script is meant to summarize Arc 7. Are you sure you want to continue?")
@@ -102,7 +114,7 @@ if not args.skip:
 def summarize(i):
     prompt = "\n<END>\n\nCreate a comprehensive plot synopsis of this part of a chapter from a book.\nMake your plot synopsis as lengthy and detailed as possible."
     total = texts[i] + prompt
-    tokens = len(enc.encode(total))
+    tokens = len(enc.encode(total)) # Get the number of tokens in the text
     
     if tokens < 3097:
         model = "gpt-3.5-turbo"
@@ -131,13 +143,14 @@ def summarize(i):
     except Exception as e:
         raise Exception(f"Error at index {i}: {e}")
     
-    summary = APIsummary['choices'][0]['message']['content']
+    summary: str = APIsummary['choices'][0]['message']['content'] # Get the summary from the API response
+    tokenusage = APIsummary['usage'] # Get the number of tokens used in the API call
     if summary == "":
         warnings.warn(f"Summary for index {str(i)} is empty!")
-    return summary
+    return summary, tokenusage
 
 # Handle individual chapters
-def handleIndividualChapter(chapter):
+def handleIndividualChapter(chapter: int | str):
     actualchapter = None
     indices = []
     
@@ -166,7 +179,7 @@ def handleIndividualChapter(chapter):
     for i in tqdm.trange(len(indices), unit="part"):
         i = indices[i]
         if not args.dry_run:
-            summary = summarize(i)
+            summary, tokens = summarize(i)
         else:
             summary = "Dry run"
             time.sleep(1)
@@ -181,6 +194,8 @@ def handleIndividualChapter(chapter):
         with open(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"), "a", encoding="utf-8") as file:
             firstline = texts[i].split("\n")[0]
             file.write(f"{firstline}\n{summary}\n\n\n")
+            
+        return summary, tokens
             
     # Remove whitespace
     with open(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"), "r+", encoding="utf-8") as file:
@@ -197,9 +212,18 @@ if args.chapter:
     chapters = str(args.chapter).split(",")
     print(Fore.YELLOW + "[-] " + "Handling chapter(s) " + ", ".join(chapters))
     
+    progress = 0 # Conform to the requests per minute limit
+    tokens = 0 # Conform to the tokens per minute limit
+    # Tokens have a limit of 20k for the free tier, 40k for tier 1, and 
+    tokenslimit = 300000 if args.tier == 2 else 150000 if args.tier == 1 else 0
+    
     for chapter in chapters:
+        if (progress == 3):
+            time.sleep(60)
+            progress = 0
         print(Fore.YELLOW + "\n[-] " + "Processing chapter " + chapter + "...")
-        handleIndividualChapter(chapter.strip())
+        req = handleIndividualChapter(chapter.strip())
+        progress = progress + 1
         print(Fore.GREEN + "[✓] " + "Processed chapter " + chapter + "!")
     
     print(Fore.GREEN + "[✓] " + "Done!")
