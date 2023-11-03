@@ -211,7 +211,7 @@ chapters: list | None = questionary.checkbox(
     choices=chaptersinarc,
 ).ask()
 
-if chapters == None:
+if chapters == None or chapters == []:
     print("No chapters selected. Exiting...")
     exit()
 
@@ -240,7 +240,7 @@ for chapter in chapters:
 # Merge all of the files into a single file
 if args.merge:
     print(Fore.YELLOW + "\n[-] " + "Merging files...")
-    with open(os.path.join(originaloutputdir, "Arc 7 Summary.txt"), "w", encoding="utf-8") as outfile:
+    with open(os.path.join(originaloutputdir, f"Arc 7 Chapter(s) {min(chapters)}-{max(chapters)} Summary.txt"), "w", encoding="utf-8") as outfile:
         for chapter in chapters:
             with open(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"), "r", encoding="utf-8") as infile:
                 outfile.write(infile.read())
