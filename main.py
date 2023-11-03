@@ -236,11 +236,23 @@ for chapter in chapters:
     print(Fore.YELLOW + "\n[-] " + "Processing chapter " + chapter + "...")
     handleIndividualChapter(chapter.strip())
     print(Fore.GREEN + "[✓] " + "Processed chapter " + chapter + "!")
+
+# Format the chapter range
+# e.g. [1, 2, 3, 4, 5, 6, 7, 8, 9] -> "1-9"
+# e.g. [1, 2, 3, 4, 5, 6, 7, 8, 10] -> "1...10"
+def format_chapter_range(chapters):
+    chapters = sorted(chapters, key=int)
+    prev = int(chapters[0])
+    for chapter in chapters[1:]:
+        if int(chapter) != prev + 1:
+            return f"{chapters[0]}...{chapters[-1]}"
+        prev = int(chapter)
+    return f"{chapters[0]}-{chapters[-1]}"
     
 # Merge all of the files into a single file
 if args.merge:
     print(Fore.YELLOW + "\n[-] " + "Merging files...")
-    with open(os.path.join(originaloutputdir, f"Arc 7 Chapter(s) {min(chapters)}-{max(chapters)} Summary.txt"), "w", encoding="utf-8") as outfile:
+    with open(os.path.join(originaloutputdir, f"Arc 7 Chapter(s) {format_chapter_range(chapters)} Summary.txt"), "w", encoding="utf-8") as outfile:
         for chapter in chapters:
             with open(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"), "r", encoding="utf-8") as infile:
                 outfile.write(infile.read())
