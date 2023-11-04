@@ -252,7 +252,7 @@ def format_chapter_range(chapters):
 # Merge all of the files into a single file
 if args.merge:
     print(Fore.YELLOW + "\n[-] " + "Merging files...")
-    with open(os.path.join(originaloutputdir, f"Arc 7 Chapter(s) {format_chapter_range(chapters)} Summary.txt"), "w", encoding="utf-8") as outfile:
+    with open(os.path.join(originaloutputdir, f"Arc {arcnumber} Chapter(s) {format_chapter_range(chapters)} Summary.txt"), "w", encoding="utf-8") as outfile:
         for chapter in chapters:
             with open(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"), "r", encoding="utf-8") as infile:
                 outfile.write(infile.read())
