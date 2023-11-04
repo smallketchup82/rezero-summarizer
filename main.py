@@ -35,11 +35,6 @@ args = parser.parse_args()
 openai.api_key = args.api_key or os.getenv("OPENAI_API_KEY")
 openai.organization = args.org or os.getenv("OPENAI_ORG")
 
-if not "7" in args.input:
-    print("This script is meant to summarize Arc 7. Are you sure you want to continue?")
-    if not strtobool(input("Continue? (Y/n): ") or "true"):
-        exit()
-
 outputdir = os.path.abspath(args.output) if args.output else os.path.join(os.getcwd(), "output")
 if args.merge:
     originaloutputdir = outputdir
@@ -49,9 +44,11 @@ os.makedirs(outputdir, exist_ok=True)
 file = open(args.input, "r", encoding="utf-8")
 text = file.read()
 
-# TODO: Make this work for all arcs (currently only works for Arc 7)
-text = re.sub(r"^.*?(?=Arc 7 Chapter 1 – Initiation).+(?=Arc 7 Chapter 1 – Initiation)", "", text, flags=re.S | re.I) # Remove the table of contents
-texts = re.split(r"(?=Arc 7 Chapter \w.*$)|△▼△▼△▼△|※　※　※　※　※　※　※　※　※　※　※　※　※", text, flags=re.M | re.I) # Split the text into chapters and parts
+arcnumber = re.search(r"(?<=Arc )\d+", text).group(0) # Looks for the first reference of the arc and the number, and assumes that this is the arc number
+
+# Split the whole arc into chapters and parts
+text = re.sub(r"^.*?(?=Arc .+ Chapter 1 –).+(?=Arc .+ Chapter 1 –)", "", text, flags=re.S | re.I) # Remove the table of contents by finding fist entry in TOC and removing until that chapter starts
+texts = re.split(r"(?=Arc .+ Chapter \w.*$)|△▼△▼△▼△|※　※　※　※　※　※　※　※　※　※　※　※　※", text, flags=re.M | re.I) # Split the text into chapters and parts
 texts = list(filter(None, texts)) # Remove empty strings from the list
 
 # Remove illustration captions
@@ -89,11 +86,11 @@ for i in range(len(texts)):
 for i in range(len(texts)):
     firstline = texts[i].split("\n")[0]
     if "Chapter" in firstline:
-        texts[i] = re.sub(r"(Arc 7 Chapter \w+ – [^\n\r]*\n?)(.* ― Complete\n?)", r"\1", texts[i], flags=re.S | re.I)
+        texts[i] = re.sub(r"(Arc .* Chapter \w+ – [^\n\r]*\n?)(.* ― Complete\n?)", r"\1", texts[i], flags=re.S | re.I)
         
 # Dump the processed text into a file if requested, for debugging purposes
 if args.dump:
-    with open(os.path.join(outputdir, "Arc 7 Processed.txt"), "w", encoding="utf-8") as file:
+    with open(os.path.join(outputdir, f"Arc {arcnumber} Processed.txt"), "w", encoding="utf-8") as file:
         file.write("\n\n".join(texts))
         print("Dumped processed text to file")
         exit()
@@ -255,7 +252,7 @@ def format_chapter_range(chapters):
 # Merge all of the files into a single file
 if args.merge:
     print(Fore.YELLOW + "\n[-] " + "Merging files...")
-    with open(os.path.join(originaloutputdir, f"Arc 7 Chapter(s) {format_chapter_range(chapters)} Summary.txt"), "w", encoding="utf-8") as outfile:
+    with open(os.path.join(originaloutputdir, f"Arc {arcnumber} Chapter(s) {format_chapter_range(chapters)} Summary.txt"), "w", encoding="utf-8") as outfile:
         for chapter in chapters:
             with open(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"), "r", encoding="utf-8") as infile:
                 outfile.write(infile.read())
