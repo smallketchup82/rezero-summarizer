@@ -26,7 +26,6 @@ parser.add_argument("-o", "--output", type=str, help="Output folder path", defau
 parser.add_argument("-v", "--verbose", help="Verbose mode", action="store_true")
 parser.add_argument("--dump", help="Dump the entire processed text into a file", action="store_true")
 parser.add_argument("-f", "--force", help="Overwrite the output file if it already exists", action="store_true")
-parser.add_argument("-s", "--skip", help="Skip the countdown (Not recommended)", action="store_true")
 parser.add_argument("--dry-run", help="Don't actually summarize anything", action="store_true")
 parser.add_argument("--api-key", type=str, help="OpenAI API key. If not specified, will use the OPENAI_API_KEY environment variable", default=None)
 parser.add_argument("--org", type=str, help="OpenAI organization. If not specified, will use the OPENAI_ORG environment variable", default=None)
@@ -98,10 +97,6 @@ if args.dump:
         file.write("\n\n".join(texts))
         print("Dumped processed text to file")
         exit()
-
-if not args.skip:
-    print("Starting summarization in 5 seconds...\nPlease terminate now (Ctrl+C) if unintended.")
-    time.sleep(5)
 
 def summarize(i):
     """Summarizer process. Not meant to be called directly.
