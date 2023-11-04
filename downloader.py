@@ -21,7 +21,7 @@ arcs = {
     "Arc 7": "https://drive.google.com/uc?id=14pCMhpQ2LBEc3TGfvwqiAtxHZ6LgUVee"
 }
 
-directory = os.path.abspath(args.d) if args.d else os.path.join(os.getcwd())
+directory = os.path.abspath(args.dir) if args.dir else os.path.join(os.getcwd())
 
 if not os.path.exists(directory):
     os.makedirs(directory)
