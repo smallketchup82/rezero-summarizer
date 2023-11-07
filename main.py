@@ -30,6 +30,7 @@ parser.add_argument("--dry-run", help="Don't actually summarize anything", actio
 parser.add_argument("--api-key", type=str, help="OpenAI API key. If not specified, will use the OPENAI_API_KEY environment variable", default=None)
 parser.add_argument("--org", type=str, help="OpenAI organization. If not specified, will use the OPENAI_ORG environment variable", default=None)
 parser.add_argument("-t", "--temperature", type=float, help="The temperature to use for the API call. Default is recommened but tune it as you wish", default=0.0)
+parser.add_argument("--gpt4", help="Use GPT-4-Turbo (warning very expensive)", action="store_true")
 args = parser.parse_args()
 
 openai.api_key = args.api_key or os.getenv("OPENAI_API_KEY")
@@ -105,14 +106,14 @@ def summarize(i):
     total = texts[i] + prompt
     tokens = len(enc.encode(total))
     
-    if tokens < 3097:
-        model = "gpt-3.5-turbo"
-        max_tokens = 1000
+    if args.gpt4 and tokens < 124000:
+        model = "gpt-4-1106-preview"
+        max_tokens = 4000
     elif tokens < 14385:
-        model = "gpt-3.5-turbo-16k"
+        model = "gpt-3.5-turbo-1106"
         max_tokens = 2000
     else:
-        warnings.warn(f"Index {str(i)} is too long. Skipping...")
+        raise Exception(f"Index {str(i)} is too long")
     
     print(Fore.CYAN + "\n" + texts[i].split("\n")[0].center(os.get_terminal_size().columns)) # Print the chapter title
     print(Fore.CYAN + f"Index: {i} | Model: {model} | Tokens: {tokens} | Words: {len(total.split())} | Characters: {len(total)}\n".center(os.get_terminal_size().columns)) # Print info
