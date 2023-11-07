@@ -4,5 +4,6 @@ EbookLib==0.18
 gdown==4.7.1
 openai==0.28.1
 python-dotenv==1.0.0
+questionary==2.0.1
 tiktoken==0.5.1
 tqdm==4.66.1
