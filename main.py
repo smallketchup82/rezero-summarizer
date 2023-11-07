@@ -215,6 +215,9 @@ chapters: list | None = questionary.checkbox(
 if chapters == None or chapters == []:
     print("No chapters selected. Exiting...")
     exit()
+    
+if args.gpt4:
+    warnings.warn("Using GPT-4-Turbo. Be warned that this is very expensive.")
 
 # Get the chapter number from the chapter title
 for i in range(len(chapters)):
