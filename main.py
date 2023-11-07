@@ -1,19 +1,23 @@
 import argparse
-import openai
-import tqdm
-import tiktoken
-from distutils.util import strtobool
-import time
 import os
-import warnings
-import shutil
 import re
-from version import __version__
+import shutil
+import time
+import warnings
+from distutils.util import strtobool
+
+import openai
 import questionary
-from colorama import Fore, Back, Style, init
+import tiktoken
+import tqdm
+from colorama import Back, Fore, Style, init
+
+from version import __version__
+
 init(autoreset=True)
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
