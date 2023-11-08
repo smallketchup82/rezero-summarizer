@@ -50,6 +50,8 @@ file = open(args.input, "r", encoding="utf-8")
 text = file.read()
 
 arcnumber = re.search(r"(?<=Arc )\d+", text).group(0) # Looks for the first reference of the arc and the number, and assumes that this is the arc number
+if arcnumber == None:
+    raise Exception("Arc number could not be found!")
 
 # Split the whole arc into chapters and parts
 text = re.sub(fr"^.*?(?=Arc {arcnumber} Chapter 1 –).+(?=Arc {arcnumber} Chapter 1 –)", "", text, flags=re.S | re.I) # Remove the table of contents by finding fist entry in TOC and removing until that chapter starts
