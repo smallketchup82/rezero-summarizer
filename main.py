@@ -251,9 +251,9 @@ for chapter in tqdm.tqdm(chapters, desc="Total progress", unit="chapter", leave=
     handleIndividualChapter(chapter.strip())
     print(Fore.GREEN + "[✓] " + "Processed chapter " + chapter + "!")
 
-if args.open and len(chapters) == 1:
+if args.open and len(chapters) == 1 and not args.merge:
     os.startfile(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"))
-elif args.open:
+elif args.open and not args.merge:
     os.startfile(outputdir)
 
 # Format the chapter range
@@ -279,7 +279,8 @@ if args.merge:
                 infile.close()
         outfile.close()
     
-    os.startfile(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"))
+    if args.open:
+        os.startfile(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"))
         
     # Delete the temp folder
     shutil.rmtree(outputdir)
