@@ -13,7 +13,9 @@ import tqdm
 from colorama import Back, Fore, Style, init
 
 from version import __version__
-
+import questionary
+import gc
+from colorama import Fore, Back, Style, init
 init(autoreset=True)
 
 from dotenv import load_dotenv
@@ -29,7 +31,6 @@ parser.add_argument("-i", "--input", type=str, help="The path to the .txt file o
 parser.add_argument("-o", "--output", type=str, help="Output folder path", default="output")
 parser.add_argument("-v", "--verbose", help="Verbose mode", action="store_true")
 parser.add_argument("--dump", help="Dump the entire processed text into a file", action="store_true")
-parser.add_argument("-f", "--force", help="Overwrite the output file if it already exists", action="store_true")
 parser.add_argument("--dry-run", help="Don't actually summarize anything", action="store_true")
 parser.add_argument("--api-key", type=str, help="OpenAI API key. If not specified, will use the OPENAI_API_KEY environment variable", default=None)
 parser.add_argument("--org", type=str, help="OpenAI organization. If not specified, will use the OPENAI_ORG environment variable", default=None)
@@ -167,13 +168,10 @@ def handleIndividualChapter(chapter):
     
     print(Fore.GREEN + "[✓] " + f"Found Chapter {chapter} at Index {actualchapter}!")
     
-    if args.force and os.path.exists(os.path.join(outputdir, f"Chapter {chapter} Summary.txt")):
-        os.remove(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"))
-    elif os.path.exists(os.path.join(outputdir, f"Chapter {chapter} Summary.txt")):
-        warnings.warn(f"Chapter {chapter} Summary.txt already exists. Will append to the file!")
-    
     print(Fore.YELLOW + "[-] " + "Summarizing...")
     print("-" * os.get_terminal_size().columns)
+    
+    fullsummary: str = ""
     
     for i in tqdm.trange(len(indices), unit="part"):
         i = indices[i]
@@ -189,20 +187,26 @@ def handleIndividualChapter(chapter):
             print(Fore.CYAN + f"Words: {len(summary.split())} | Characters: {len(summary)}".center(os.get_terminal_size().columns))
             print("-" * os.get_terminal_size().columns)
         
-        # Write to file
-        with open(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"), "a", encoding="utf-8") as file:
-            firstline = texts[i].split("\n")[0]
-            file.write(f"{firstline}\n{summary}\n\n\n")
             
-    # Remove whitespace
-    with open(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"), "r+", encoding="utf-8") as file:
+        # Append to the summary variable
+        firstline: str = texts[i].split("\n")[0]
+        fullsummary += f"{firstline}\n{summary}\n\n\n"
+            
+    # Write to file
+    with open(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"), "w+", encoding="utf-8") as file:
+        file.write(fullsummary)
+        file.seek(0)
         fart = file.read()
         fart = fart.strip()
         file.seek(0)
         file.write(fart)
         file.truncate()
         file.close()
-
+        
+    # Manually trigger garbage collection since this is a good time to do so
+    print(Fore.YELLOW + "[-] Garbage collecting...")
+    gc.collect()
+    
 chaptersinarc = []
 
 # Get all chapters in the arc and add them to a list
