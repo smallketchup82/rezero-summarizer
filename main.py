@@ -22,6 +22,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+print = tqdm.tqdm.write
 enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
 parser = argparse.ArgumentParser(prog="sumzero", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -122,8 +123,13 @@ def summarize(i):
     else:
         raise Exception(f"Index {str(i)} is too long")
     
-    print(Fore.CYAN + "\n" + texts[i].split("\n")[0].center(os.get_terminal_size().columns)) # Print the chapter title
-    print(Fore.CYAN + f"Index: {i} | Model: {model} | Tokens: {tokens} | Words: {len(total.split())} | Characters: {len(total)}\n".center(os.get_terminal_size().columns)) # Print info
+    if args.verbose:
+        print(Fore.CYAN + "\n" + texts[i].split("\n")[0].center(os.get_terminal_size().columns)) # Print the chapter title
+        print(Fore.CYAN + f"Index: {i} | Model: {model} | Tokens: {tokens} | Words: {len(total.split())} | Characters: {len(total)}\n".center(os.get_terminal_size().columns)) # Print info
+    
+    if args.dry_run:
+        time.sleep(1)
+        return "Dry run"
     
     try:
         APIsummary = openai.ChatCompletion.create(
@@ -154,7 +160,6 @@ def handleIndividualChapter(chapter):
     actualchapter = None
     indices = []
     
-    print(Fore.YELLOW + "[-] " + "Searching for chapter...")
     for i in range(len(texts)):
         if f"Chapter {chapter} " in texts[i]:
             indices.append(i)
@@ -166,20 +171,13 @@ def handleIndividualChapter(chapter):
     
     actualchapter = indices[0]
     
-    print(Fore.GREEN + "[✓] " + f"Found Chapter {chapter} at Index {actualchapter}!")
-    
     print(Fore.YELLOW + "[-] " + "Summarizing...")
-    print("-" * os.get_terminal_size().columns)
     
     fullsummary: str = ""
     
-    for i in tqdm.trange(len(indices), unit="part"):
+    for i in tqdm.trange(len(indices), unit="part", desc=f"Chapter {chapter}", leave=False):
         i = indices[i]
-        if not args.dry_run:
-            summary = summarize(i)
-        else:
-            summary = "Dry run"
-            time.sleep(1)
+        summary = summarize(i)
         
         if args.verbose:
             print(Fore.GREEN + 'Summary'.center(os.get_terminal_size().columns))
@@ -236,7 +234,7 @@ for i in range(len(chapters)):
 # Sort the chapters in ascending order
 chapters.sort()
 
-print(Fore.YELLOW + "[-] " + "Handling chapter(s) " + ", ".join(chapters))
+print(Fore.YELLOW + "[-] " + "Handling chapter(s): " + ", ".join(chapters))
 
 if args.merge:
     # Remove the temp folder if it already exists
@@ -246,8 +244,9 @@ if args.merge:
         
 
 # Handle each chapter
-for chapter in chapters:
-    print(Fore.YELLOW + "\n[-] " + "Processing chapter " + chapter + "...")
+for chapter in tqdm.tqdm(chapters, desc="Total progress", unit="chapter", leave=False):
+    print("-" * os.get_terminal_size().columns)
+    print(Fore.YELLOW + "[-] " + "Processing chapter " + chapter + "...")
     handleIndividualChapter(chapter.strip())
     print(Fore.GREEN + "[✓] " + "Processed chapter " + chapter + "!")
 
