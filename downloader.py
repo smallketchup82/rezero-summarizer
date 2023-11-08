@@ -11,6 +11,7 @@ parser = argparse.ArgumentParser(prog="sumzero-dl", formatter_class=argparse.Arg
 parser.add_argument("arcs", type=str, help="The arcs to download and process. Comma separated. Put \"all\" to process all available arcs.", default=None)
 parser.add_argument("-d", "--dir", metavar="DIR", type=str, help="Working directory (input & output) path", default="")
 parser.add_argument("-c", help="Delete the epubs after converting to txt", action="store_true")
+parser.add_argument("-l", "--list", help="List of arcs available for download", action="store_true")
 parser.add_argument("--dry-run", help="Don't write to the files", action="store_true")
 args = parser.parse_args()
 
@@ -20,6 +21,12 @@ arcs = {
     "Arc 6": "https://drive.google.com/uc?id=1DicrC_gQKdJFQWt95Lfn5hizbPO9CtPZ",
     "Arc 7": "https://drive.google.com/uc?id=14pCMhpQ2LBEc3TGfvwqiAtxHZ6LgUVee"
 }
+
+if args.list:
+    print("Available arcs:")
+    for arc in arcs:
+        print(f"\t{arc}")
+    exit()
 
 directory = os.path.abspath(args.dir) if args.dir else os.path.join(os.getcwd())
 
