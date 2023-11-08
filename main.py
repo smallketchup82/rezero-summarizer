@@ -25,7 +25,7 @@ load_dotenv()
 print = tqdm.tqdm.write
 enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
-parser = argparse.ArgumentParser(prog="sumzero", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser = argparse.ArgumentParser(prog="sum:zero", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
 parser.add_argument("-m", "--merge", help="Merge all of the outputs into a single file", action="store_true")
 parser.add_argument("-i", "--input", type=str, help="The path to the .txt file of the arc. Required", required=True)
@@ -37,6 +37,7 @@ parser.add_argument("--api-key", type=str, help="OpenAI API key. If not specifie
 parser.add_argument("--org", type=str, help="OpenAI organization. If not specified, will use the OPENAI_ORG environment variable", default=None)
 parser.add_argument("-t", "--temperature", type=float, help="The temperature to use for the API call. Default is recommened but tune it as you wish", default=0.0)
 parser.add_argument("--gpt4", help="Use GPT-4-Turbo (warning very expensive)", action="store_true")
+parser.add_argument("-O", "--open", help="Open the generated summary if you only summarized one chapter or merged outputs. Otherwise, open the output folder.", action="store_true")
 args = parser.parse_args()
 
 openai.api_key = args.api_key or os.getenv("OPENAI_API_KEY")
@@ -250,6 +251,11 @@ for chapter in tqdm.tqdm(chapters, desc="Total progress", unit="chapter", leave=
     handleIndividualChapter(chapter.strip())
     print(Fore.GREEN + "[✓] " + "Processed chapter " + chapter + "!")
 
+if args.open and len(chapters) == 1:
+    os.startfile(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"))
+elif args.open:
+    os.startfile(outputdir)
+
 # Format the chapter range
 # e.g. [1, 2, 3, 4, 5, 6, 7, 8, 9] -> "1-9"
 # e.g. [1, 2, 3, 4, 5, 6, 7, 8, 10] -> "1...10"
@@ -272,6 +278,8 @@ if args.merge:
                 outfile.write("\n\n\n")
                 infile.close()
         outfile.close()
+    
+    os.startfile(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"))
         
     # Delete the temp folder
     shutil.rmtree(outputdir)
