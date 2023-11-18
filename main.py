@@ -28,6 +28,7 @@ enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
 parser = argparse.ArgumentParser(prog="sum:zero", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
+parser.add_argument("-c", "--chapter", type=str, help="Chapters to summarize. Use a comma-separated list for multiple chapters", default=None)
 parser.add_argument("-m", "--merge", help="Merge all of the outputs into a single file", action="store_true")
 parser.add_argument("-i", "--input", type=str, help="The path to the .txt file of the arc. Required", required=True)
 parser.add_argument("-o", "--output", type=str, help="Output folder path", default="output")
@@ -218,22 +219,32 @@ for i in range(len(texts)):
     if "Chapter" in firstline and not "Part" in firstline:
         chaptersinarc.append(firstline)
 
-# Ask the user which chapters they want to summarize
-chapters: list | None = questionary.checkbox(
-    "Which chapter(s) do you want to summarize?",
-    choices=chaptersinarc,
-).ask()
+# If the user specified a chapter, use that instead of asking them
+if args.chapter:
+    # remove whitespace and split the string into a list
+    chapters: list = args.chapter.replace(" ", "").split(",")
 
-if chapters == None or chapters == []:
-    print("No chapters selected. Exiting...")
-    exit()
+    if chapters == None or chapters == []:
+        print("No chapters selected. Exiting...")
+        exit()
+
+else:
+    # Ask the user which chapters they want to summarize
+    chapters: list | None = questionary.checkbox(
+        "Which chapter(s) do you want to summarize?",
+        choices=chaptersinarc,
+    ).ask()
+
+    if chapters == None or chapters == []:
+        print("No chapters selected. Exiting...")
+        exit()
+
+    # Get the chapter number from the chapter title
+    for i in range(len(chapters)):
+        chapters[i] = str(re.search(r"(?<=Chapter )\w+", chapters[i]).group(0))
     
 if args.gpt4:
     warnings.warn("Using GPT-4-Turbo. Be warned that this is very expensive.")
-
-# Get the chapter number from the chapter title
-for i in range(len(chapters)):
-    chapters[i] = str(re.search(r"(?<=Chapter )\w+", chapters[i]).group(0))
 
 # Sort the chapters in ascending order
 chapters.sort()
