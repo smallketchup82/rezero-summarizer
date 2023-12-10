@@ -207,7 +207,7 @@ def handleIndividualChapter(chapter):
         fullsummary += f"{firstline}\n{summary}\n\n\n"
             
     # Write to file
-    with open(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"), "w+", encoding="utf-8") as file:
+    with open(os.path.join(outputdir, f"Arc {arcnumber} Chapter {chapter} Summary.txt"), "w+", encoding="utf-8") as file:
         file.write(fullsummary)
         file.seek(0)
         fart = file.read()
@@ -276,7 +276,7 @@ for chapter in tqdm.tqdm(chapters, desc="Total progress", unit="chapter", leave=
     print(Fore.GREEN + "[✓] " + "Processed chapter " + chapter + "!")
 
 if args.open and len(chapters) == 1 and not args.merge:
-    os.startfile(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"))
+    os.startfile(os.path.join(outputdir, f"Arc {arcnumber} Chapter {chapter} Summary.txt"))
 elif args.open and not args.merge:
     os.startfile(outputdir)
 
@@ -297,14 +297,14 @@ if args.merge:
     print(Fore.YELLOW + "\n[-] " + "Merging files...")
     with open(os.path.join(originaloutputdir, f"Arc {arcnumber} Chapter(s) {format_chapter_range(chapters)} Summary.txt"), "w", encoding="utf-8") as outfile:
         for chapter in chapters:
-            with open(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"), "r", encoding="utf-8") as infile:
+            with open(os.path.join(outputdir, f"Arc {arcnumber} Chapter {chapter} Summary.txt"), "r", encoding="utf-8") as infile:
                 outfile.write(infile.read())
                 outfile.write("\n\n\n")
                 infile.close()
         outfile.close()
     
     if args.open:
-        os.startfile(os.path.join(outputdir, f"Chapter {chapter} Summary.txt"))
+        os.startfile(os.path.join(outputdir, f"Arc {arcnumber} Chapter {chapter} Summary.txt"))
         
     # Delete the temp folder
     shutil.rmtree(outputdir)
