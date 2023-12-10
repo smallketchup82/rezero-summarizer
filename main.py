@@ -62,12 +62,21 @@ if arcnumber == None:
 
 # Split the whole arc into chapters and parts
 text = re.sub(fr"^.*?(?=Arc {arcnumber} Chapter 1 –).+(?=Arc {arcnumber} Chapter 1 –)", "", text, flags=re.S | re.I) # Remove the table of contents by finding the first entry in TOC and removing until that chapter starts
+text = re.sub(fr"Other Volumes.*", "", text, flags=re.S | re.I)
 texts = re.split(fr"(?=Arc {arcnumber} Chapter \w.*$)|△▼△▼△▼△|※　※　※　※　※　※　※　※　※　※　※　※　※", text, flags=re.M | re.I) # Split the text into chapters and parts
 texts = list(filter(None, texts)) # Remove empty strings from the list
 
 # Remove illustration captions
 for i in range(len(texts)):
     texts[i] = re.sub("Illustration from Volume.*$", "", texts[i], flags=re.M | re.I)
+    
+# Remove Character Page titles
+for i in range(len(texts)):
+    texts[i] = re.sub("Character Pages.*$", "", texts[i], flags=re.M | re.I)
+
+# Remove Volume titles
+for i in range(len(texts)):
+    texts[i] = re.sub("Web Novel Volume.*$", "", texts[i], flags=re.M | re.I)
 
 # Remove whitespace
 for i in range(len(texts)):
@@ -229,7 +238,6 @@ if args.chapter:
     if chapters == None or chapters == []:
         print("No chapters selected. Exiting...")
         exit()
-
 else:
     # Ask the user which chapters they want to summarize
     chapters: list | None = questionary.checkbox(
