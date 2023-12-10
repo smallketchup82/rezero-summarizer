@@ -9,7 +9,7 @@ Please do not use this as a substitute for reading the Re:Zero Web Novel. This i
 # Installation
 
 ### Windows
-This project uses pyinstaller to create self contained binaries. Both the main script and the downloader script are included. These binaries don't require python or any dependencies to be installed. You can grab them from the releases page. Unzip the zip file and refer to the usage section for help.
+This project uses pyinstaller to create self contained binaries. Both the main script and the downloader script are included. These binaries don't require python or any dependencies to be installed. You can grab them from the [releases page](https://github.com/smallketchup82/rezero-summarizer/releases/latest). Unzip the zip file and refer to the usage section for help.
 
 To input your OpenAI API credentials, use the `--api-key` and `--org` options or pass them as environment variables in your shell. Refer to .env.example for the names of the variables.
 
