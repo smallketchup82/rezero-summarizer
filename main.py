@@ -6,7 +6,7 @@ import time
 import warnings
 from distutils.util import strtobool
 
-import openai
+from openai import OpenAI
 import questionary
 import tiktoken
 import tqdm
@@ -42,8 +42,10 @@ parser.add_argument("--gpt4", help="Use GPT-4-Turbo (warning very expensive)", a
 parser.add_argument("-O", "--open", help="Open the generated summary if you only summarized one chapter or merged outputs. Otherwise, open the output folder.", action="store_true")
 args = parser.parse_args()
 
-openai.api_key = args.api_key or os.getenv("OPENAI_API_KEY")
-openai.organization = args.org or os.getenv("OPENAI_ORG")
+openai_client = OpenAI(
+    api_key=args.api_key or os.getenv("OPENAI_API_KEY"),
+    organization=args.org or os.getenv("OPENAI_ORG")
+)
 
 outputdir = os.path.abspath(args.output) if args.output else os.path.join(os.getcwd(), "output")
 if args.merge:
@@ -137,7 +139,7 @@ def summarize(i):
     # Retry if the API call fails. Will exponentially backoff and retry until 1 minute has passed. Then it will randomly backoff and retry until 5 minutes have passed. To which it will then give up and reraise the exception.
     @retry (stop=stop_after_delay(300), wait=wait_random_exponential(multiplier=1, min=1, max=10), reraise=True)
     def sendRequest():
-        APIsummary = openai.ChatCompletion.create(
+        APIsummary = openai_client.chat.completions.create(
             model=model,
             max_tokens=max_tokens,
             temperature=args.temperature,
@@ -151,7 +153,7 @@ def summarize(i):
         
         return APIsummary
     
-    summary = sendRequest()['choices'][0]['message']['content']
+    summary = sendRequest().choices[0].message.content
     if summary == "":
         warnings.warn(f"Summary for index {str(i)} is empty!")
     return summary
