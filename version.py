@@ -1,2 +1,2 @@
 # Project uses CalVer
-__version__ = "24.10.2023"
+__version__ = "2023.12.09"
