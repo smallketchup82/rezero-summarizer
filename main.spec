@@ -2,7 +2,7 @@
 
 # Main.py
 a = Analysis(
-    ['main.py'],
+    ['main.py', 'version.py'],
     pathex=[],
     binaries=[],
     datas=[],
@@ -40,7 +40,7 @@ exe = EXE(
 
 # Downloader
 downloader = Analysis(
-    ['downloader.py'],
+    ['downloader.py', 'version.py'],
     pathex=[],
     binaries=[],
     datas=[],

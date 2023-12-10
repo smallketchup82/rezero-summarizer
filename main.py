@@ -27,7 +27,7 @@ print = tqdm.tqdm.write
 enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
 parser = argparse.ArgumentParser(prog="sum:zero", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
+parser.add_argument("-V", "--version", action="version", version=f"{__version__}")
 parser.add_argument("-c", "--chapter", type=str, help="Chapters to summarize. Use a comma-separated list for multiple chapters", default=None)
 parser.add_argument("-m", "--merge", help="Merge all of the outputs into a single file", action="store_true")
 parser.add_argument("-i", "--input", type=str, help="The path to the .txt file of the arc. Required", required=True)
