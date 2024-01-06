@@ -20,6 +20,7 @@ permissions:
 jobs:
   build-windows:
     runs-on: windows-latest
+    name: Windows Builds
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python 3.10
@@ -41,6 +42,7 @@ jobs:
 
   build-linux:
     runs-on: ubuntu-latest
+    name: Linux Builds
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python 3.10
@@ -62,6 +64,7 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
+    name: MacOS Builds
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python 3.10
