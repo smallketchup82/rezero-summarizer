@@ -5,10 +5,12 @@ from ebooklib import epub
 from bs4 import BeautifulSoup
 import os
 import argparse
+from version import __version__
 
 
 parser = argparse.ArgumentParser(prog="sumzero-dl", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("arcs", type=str, help="The arcs to download and process. Comma separated. Put \"all\" to process all available arcs.", default=None)
+parser.add_argument("-v", "-V", "--version", action="version", version=f"{__version__}")
 parser.add_argument("-d", "--dir", metavar="DIR", type=str, help="Working directory (input & output) path", default="")
 parser.add_argument("-c", help="Delete the epubs after converting to txt", action="store_true")
 parser.add_argument("-l", "--list", help="List of arcs available for download", action="store_true")
