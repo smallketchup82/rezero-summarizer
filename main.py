@@ -116,7 +116,7 @@ if args.dump:
         print("Dumped processed text to file")
         exit()
 
-def summarize(i):
+def summarize(i: int) -> str:
     """Summarizer process. Not meant to be called directly.
 
     Args:
@@ -161,11 +161,11 @@ def summarize(i):
         return APIsummary
     
     summary = sendRequest().choices[0].message.content
-    if summary == "":
+    if summary == "" or summary is None:
         warnings.warn(f"Summary for index {str(i)} is empty!")
     return summary
 
-def handleIndividualChapter(chapter):
+def handleIndividualChapter(chapter: str | int) -> None:
     """Handler for individual chapters
 
     Args:
