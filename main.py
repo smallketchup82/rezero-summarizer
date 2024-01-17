@@ -171,7 +171,6 @@ def handleIndividualChapter(chapter: str | int) -> None:
     Args:
         chapter (str | int): Index of the chapter to summarize
     """
-    actualchapter = None
     indices = []
     
     for i in range(len(texts)):
