@@ -3,7 +3,7 @@ colorama==0.4.6
 EbookLib==0.18
 gdown==4.7.3
 openai==1.8.0
-python-dotenv==1.0.0
+python-dotenv==1.0.1
 questionary==2.0.1
 tenacity==8.2.3
 tiktoken==0.5.2
