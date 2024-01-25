@@ -9,7 +9,7 @@ from version import __version__
 
 
 parser = argparse.ArgumentParser(prog="sumzero-dl", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("arcs", type=str, help="The arcs to download and process. Comma separated. Put \"all\" to process all available arcs.", default=None)
+parser.add_argument("--arcs", "-a", type=str, help="The arcs to download and process. Comma separated. Put \"all\" to process all available arcs.", default=None)
 parser.add_argument("-v", "-V", "--version", action="version", version=f"{__version__}")
 parser.add_argument("-d", "--dir", metavar="DIR", type=str, help="Working directory (input & output) path", default="")
 parser.add_argument("-c", help="Delete the epubs after converting to txt", action="store_true")
@@ -59,7 +59,11 @@ def handle_arc(arc: int):
 
 if args.arcs == "all":
     for arc in arcs:
-        handle_arc(arc)
+        handle_arc(arc.removeprefix("Arc "))
 elif args.arcs:
     for arc in args.arcs.split(","):
-        handle_arc(arc)
+        try:
+            requested_arc = int(arc)
+        except:
+            raise Exception("Arcs input must be numbers or \"all\"")
+        handle_arc(requested_arc)
