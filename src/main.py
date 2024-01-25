@@ -1,22 +1,20 @@
 import argparse
+import gc
 import os
 import re
 import shutil
 import time
 import warnings
-from distutils.util import strtobool
 
-from openai import OpenAI
 import questionary
 import tiktoken
 import tqdm
-from colorama import Back, Fore, Style, init
+from colorama import Fore, init
+from openai import OpenAI
+from tenacity import retry, stop_after_delay, wait_random_exponential
 
 from version import __version__
-import questionary
-import gc
-from colorama import Fore, Back, Style, init
-from tenacity import retry, stop_after_delay, wait_random_exponential
+
 init(autoreset=True)
 
 from dotenv import load_dotenv
@@ -57,12 +55,12 @@ file = open(args.input, "r", encoding="utf-8")
 text = file.read()
 
 arcnumber = re.search(r"(?<=Arc )\d+", text).group(0) # Looks for the first reference of the arc and the number, and assumes that this is the arc number
-if arcnumber == None:
+if arcnumber is None:
     raise Exception("Arc number could not be found!")
 
 # Split the whole arc into chapters and parts
 text = re.sub(fr"^.*?(?=Arc {arcnumber} Chapter 1 –).+(?=Arc {arcnumber} Chapter 1 –)", "", text, flags=re.S | re.I) # Remove the table of contents by finding the first entry in TOC and removing until that chapter starts
-text = re.sub(fr"Other Volumes.*", "", text, flags=re.S | re.I)
+text = re.sub(r"Other Volumes.*", "", text, flags=re.S | re.I)
 texts = re.split(fr"(?=Arc {arcnumber} Chapter \w.*$)|△▼△▼△▼△|※　※　※　※　※　※　※　※　※　※　※　※　※", text, flags=re.M | re.I) # Split the text into chapters and parts
 texts = list(filter(None, texts)) # Remove empty strings from the list
 
@@ -97,11 +95,11 @@ chapter = "0"
 for i in range(len(texts)):
     firstline = texts[i].split("\n")[0]
     
-    if "Chapter" in firstline and not "Part" in firstline:
+    if "Chapter" in firstline and "Part" not in firstline:
         part = 1
         chapter = str(re.search(r"(?<=Chapter )\w+", firstline).group(0))
         
-    if not "Chapter" in firstline:
+    if "Chapter" not in firstline:
         part += 1
         texts[i] = f"Chapter {chapter} Part {part}\n{texts[i]}"
 
@@ -118,7 +116,7 @@ if args.dump:
         print("Dumped processed text to file")
         exit()
 
-def summarize(i):
+def summarize(i: int) -> str:
     """Summarizer process. Not meant to be called directly.
 
     Args:
@@ -163,17 +161,16 @@ def summarize(i):
         return APIsummary
     
     summary = sendRequest().choices[0].message.content
-    if summary == "":
+    if summary == "" or summary is None:
         warnings.warn(f"Summary for index {str(i)} is empty!")
     return summary
 
-def handleIndividualChapter(chapter):
+def handleIndividualChapter(chapter: str | int) -> None:
     """Handler for individual chapters
 
     Args:
         chapter (str | int): Index of the chapter to summarize
     """
-    actualchapter = None
     indices = []
     
     for i in range(len(texts)):
@@ -227,7 +224,7 @@ chaptersinarc = []
 for i in range(len(texts)):
     firstline = texts[i].split("\n")[0]
     
-    if "Chapter" in firstline and not "Part" in firstline:
+    if "Chapter" in firstline and "Part" not in firstline:
         chaptersinarc.append(firstline)
 
 # If the user specified a chapter, use that instead of asking them
@@ -235,7 +232,7 @@ if args.chapter:
     # remove whitespace and split the string into a list
     chapters: list = args.chapter.replace(" ", "").split(",")
 
-    if chapters == None or chapters == []:
+    if chapters is None or chapters == []:
         print("No chapters selected. Exiting...")
         exit()
 else:
@@ -245,7 +242,7 @@ else:
         choices=chaptersinarc,
     ).ask()
 
-    if chapters == None or chapters == []:
+    if chapters is None or chapters == []:
         print("No chapters selected. Exiting...")
         exit()
 

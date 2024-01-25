@@ -1,7 +1,7 @@
 # This workflow will install Python dependencies, run tests and lint with a single version of Python
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
-name: Windows Builds
+name: Builds
 
 on:
   workflow_dispatch:
@@ -18,10 +18,9 @@ permissions:
   contents: read
 
 jobs:
-  build:
-
+  build-windows:
     runs-on: windows-latest
-
+    name: Windows Builds
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python 3.10
@@ -38,5 +37,49 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: sumzero-win
+        path: dist
+        if-no-files-found: error
+
+  build-linux:
+    runs-on: ubuntu-latest
+    name: Linux Builds
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+        cache: 'pip'
+    - name: Install dependencies
+      run: |
+        pip install pyinstaller
+        pip install -r requirements.txt
+    - name: Build with pyinstaller
+      run: pyinstaller main.spec
+    - uses: actions/upload-artifact@v3
+      with:
+        name: sumzero-linux
+        path: dist
+        if-no-files-found: error
+
+  build-macos:
+    runs-on: macos-latest
+    name: MacOS Builds
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+        cache: 'pip'
+    - name: Install dependencies
+      run: |
+        pip install pyinstaller
+        pip install -r requirements.txt
+    - name: Build with pyinstaller
+      run: pyinstaller main.spec
+    - uses: actions/upload-artifact@v3
+      with:
+        name: sumzero-macos
         path: dist
         if-no-files-found: error
