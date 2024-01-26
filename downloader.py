@@ -64,6 +64,6 @@ elif args.arcs:
     for arc in args.arcs.split(","):
         try:
             requested_arc = int(arc)
-        except:
-            raise Exception("Arcs input must be numbers or \"all\"")
+        except ValueError:
+            raise ValueError("Arcs input must be numbers or \"all\"")
         handle_arc(requested_arc)
