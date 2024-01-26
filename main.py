@@ -182,8 +182,6 @@ def handleIndividualChapter(chapter: str | int) -> None:
     if indices == []:
         raise Exception("Chapter not found")
     
-    actualchapter = indices[0]
-    
     print(Fore.YELLOW + "[-] " + "Summarizing...")
     
     fullsummary: str = ""
