@@ -1,7 +1,7 @@
 beautifulsoup4==4.12.3
 colorama==0.4.6
 EbookLib==0.18
-gdown==4.7.3
+gdown==5.0.1
 openai==1.9.0
 python-dotenv==1.0.1
 questionary==2.0.1
