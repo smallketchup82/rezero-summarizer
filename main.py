@@ -28,9 +28,10 @@ parser = argparse.ArgumentParser(prog="sum:zero", formatter_class=argparse.Argum
 parser.add_argument("-V", "--version", action="version", version=f"{__version__}")
 parser.add_argument("-c", "--chapter", type=str, help="Chapters to summarize. Use a comma-separated list for multiple chapters", default=None)
 parser.add_argument("-m", "--merge", help="Merge all of the outputs into a single file", action="store_true")
-parser.add_argument("-i", "--input", type=str, help="The path to the .txt file of the arc. Required", required=True)
+parser.add_argument("-i", "--input", type=str, help="The path to the .txt file. Required", required=True)
 parser.add_argument("-o", "--output", type=str, help="Output folder path", default="output")
 parser.add_argument("-v", "--verbose", help="Verbose mode", action="store_true")
+parser.add_argument("--custom-text", help="Summarize the entire input file as if it were 1 chapter. Intended for non-RE:Zero summerizations", action="store_true")
 parser.add_argument("--dump", help="Dump the entire processed text into a file", action="store_true")
 parser.add_argument("--dry-run", help="Don't actually summarize anything", action="store_true")
 parser.add_argument("--api-key", type=str, help="OpenAI API key. If not specified, will use the OPENAI_API_KEY environment variable", default=None)
@@ -54,76 +55,81 @@ os.makedirs(outputdir, exist_ok=True)
 file = open(args.input, "r", encoding="utf-8")
 text = file.read()
 
-arcnumber = re.search(r"(?<=Arc )\d+", text).group(0) # Looks for the first reference of the arc and the number, and assumes that this is the arc number
-if arcnumber is None:
-    raise Exception("Arc number could not be found!")
+if not args.custom_text:
+    arcnumber = re.search(r"(?<=Arc )\d+", text).group(0) # Looks for the first reference of the arc and the number, and assumes that this is the arc number
+    if arcnumber is None:
+        raise Exception("Arc number could not be found!")
 
-# Split the whole arc into chapters and parts
-text = re.sub(fr"^.*?(?=Arc {arcnumber} Chapter 1 –).+(?=Arc {arcnumber} Chapter 1 –)", "", text, flags=re.S | re.I) # Remove the table of contents by finding the first entry in TOC and removing until that chapter starts
-text = re.sub(r"Other Volumes.*", "", text, flags=re.S | re.I)
-texts = re.split(fr"(?=Arc {arcnumber} Chapter \w.*$)|△▼△▼△▼△|※　※　※　※　※　※　※　※　※　※　※　※　※", text, flags=re.M | re.I) # Split the text into chapters and parts
-texts = list(filter(None, texts)) # Remove empty strings from the list
+    # Split the whole arc into chapters and parts
+    text = re.sub(fr"^.*?(?=Arc {arcnumber} Chapter 1 –).+(?=Arc {arcnumber} Chapter 1 –)", "", text, flags=re.S | re.I) # Remove the table of contents by finding the first entry in TOC and removing until that chapter starts
+    text = re.sub(r"Other Volumes.*", "", text, flags=re.S | re.I)
+    texts = re.split(fr"(?=Arc {arcnumber} Chapter \w.*$)|△▼△▼△▼△|※　※　※　※　※　※　※　※　※　※　※　※　※", text, flags=re.M | re.I) # Split the text into chapters and parts
+    texts = list(filter(None, texts)) # Remove empty strings from the list
 
-# Remove illustration captions
-for i in range(len(texts)):
-    texts[i] = re.sub("Illustration from Volume.*$", "", texts[i], flags=re.M | re.I)
-    
-# Remove Character Page titles
-for i in range(len(texts)):
-    texts[i] = re.sub("Character Pages.*$", "", texts[i], flags=re.M | re.I)
-
-# Remove Volume titles
-for i in range(len(texts)):
-    texts[i] = re.sub("Web Novel Volume.*$", "", texts[i], flags=re.M | re.I)
-
-# Remove whitespace
-for i in range(len(texts)):
-    texts[i] = texts[i].strip()
-
-# Remove unncessary spaces
-for i in range(len(texts)):
-    texts[i] = re.sub(r" +", " ", texts[i])
-
-# Remove unnecessary newlines
-for i in range(len(texts)):
-    texts[i] = re.sub(r"\n+", "\n", texts[i])
-    
-# Every chapter has a title in the first line of the text. However, the parts do not have such a title.
-# Iterate through the texts and add a title to the first line of each part, incrementing the part number each time until the next time we encounter a chapter title (e.g. "Chapter 2 Part 1").
-part = 1
-chapter = "0"
-for i in range(len(texts)):
-    firstline = texts[i].split("\n")[0]
-    
-    if "Chapter" in firstline and "Part" not in firstline:
-        part = 1
-        chapter = str(re.search(r"(?<=Chapter )\w+", firstline).group(0))
+    # Remove illustration captions
+    for i in range(len(texts)):
+        texts[i] = re.sub("Illustration from Volume.*$", "", texts[i], flags=re.M | re.I)
         
-    if "Chapter" not in firstline:
-        part += 1
-        texts[i] = f"Chapter {chapter} Part {part}\n{texts[i]}"
+    # Remove Character Page titles
+    for i in range(len(texts)):
+        texts[i] = re.sub("Character Pages.*$", "", texts[i], flags=re.M | re.I)
 
-# Remove info proceeding the chapter title
-for i in range(len(texts)):
-    firstline = texts[i].split("\n")[0]
-    if "Chapter" in firstline:
-        texts[i] = re.sub(fr"(Arc {arcnumber} Chapter \w+ – [^\n\r]*\n?)(.* ― Complete\n?)", r"\1", texts[i], flags=re.S | re.I)
+    # Remove Volume titles
+    for i in range(len(texts)):
+        texts[i] = re.sub("Web Novel Volume.*$", "", texts[i], flags=re.M | re.I)
+
+    # Remove whitespace
+    for i in range(len(texts)):
+        texts[i] = texts[i].strip()
+
+    # Remove unncessary spaces
+    for i in range(len(texts)):
+        texts[i] = re.sub(r" +", " ", texts[i])
+
+    # Remove unnecessary newlines
+    for i in range(len(texts)):
+        texts[i] = re.sub(r"\n+", "\n", texts[i])
         
-# Dump the processed text into a file if requested, for debugging purposes
-if args.dump:
-    with open(os.path.join(outputdir, f"Arc {arcnumber} Processed.txt"), "w", encoding="utf-8") as file:
-        file.write("\n\n".join(texts))
-        print("Dumped processed text to file")
-        exit()
+    # Every chapter has a title in the first line of the text. However, the parts do not have such a title.
+    # Iterate through the texts and add a title to the first line of each part, incrementing the part number each time until the next time we encounter a chapter title (e.g. "Chapter 2 Part 1").
+    part = 1
+    chapter = "0"
+    for i in range(len(texts)):
+        firstline = texts[i].split("\n")[0]
+        
+        if "Chapter" in firstline and "Part" not in firstline:
+            part = 1
+            chapter = str(re.search(r"(?<=Chapter )\w+", firstline).group(0))
+            
+        if "Chapter" not in firstline:
+            part += 1
+            texts[i] = f"Chapter {chapter} Part {part}\n{texts[i]}"
 
-def summarize(i: int) -> str:
+    # Remove info proceeding the chapter title
+    for i in range(len(texts)):
+        firstline = texts[i].split("\n")[0]
+        if "Chapter" in firstline:
+            texts[i] = re.sub(fr"(Arc {arcnumber} Chapter \w+ – [^\n\r]*\n?)(.* ― Complete\n?)", r"\1", texts[i], flags=re.S | re.I)
+            
+    # Dump the processed text into a file if requested, for debugging purposes
+    if args.dump:
+        with open(os.path.join(outputdir, f"Arc {arcnumber} Processed.txt"), "w", encoding="utf-8") as file:
+            file.write("\n\n".join(texts))
+            print("Dumped processed text to file")
+            exit()
+
+def summarize(text: str, index: int|None = None) -> str:
     """Summarizer process. Not meant to be called directly.
 
     Args:
-        i (int): The index of the part of the chapter to summarize
+        text (str): The text to summarize
+        index (int): The index of the part of the chapter to summarize
     """
-    prompt = "\n<END>\n\nCreate a comprehensive plot synopsis of this part of a chapter from a book.\nMake your plot synopsis as lengthy and detailed as possible."
-    total = texts[i] + prompt
+    if args.custom_text:
+        prompt = "\n<END>\n\nCreate a comprehensive plot synopsis of this passage.\nMake your plot synopsis as lengthy and detailed as possible."
+    else:
+        prompt = "\n<END>\n\nCreate a comprehensive plot synopsis of this part of a chapter from a book.\nMake your plot synopsis as lengthy and detailed as possible."
+    total = text + prompt
     tokens = len(enc.encode(total))
     
     if args.gpt4 and tokens < 124000:
@@ -133,11 +139,18 @@ def summarize(i: int) -> str:
         model = "gpt-3.5-turbo-1106"
         max_tokens = 2000
     else:
-        raise Exception(f"Index {str(i)} is too long")
+        if args.custom_text:
+            raise ValueError(f"Given text is too long. Tokens: {tokens}")
+        else:
+            raise Exception(f"Index {str(i)} is too long")
     
     if args.verbose:
-        print(Fore.CYAN + "\n" + texts[i].split("\n")[0].center(os.get_terminal_size().columns)) # Print the chapter title
-        print(Fore.CYAN + f"Index: {i} | Model: {model} | Tokens: {tokens} | Words: {len(total.split())} | Characters: {len(total)}\n".center(os.get_terminal_size().columns)) # Print info
+        if args.custom_text:
+            print(Fore.CYAN + "\n" + os.path.basename(args.input).center(os.get_terminal_size().columns))
+            print(Fore.CYAN + f"Model: {model} | Tokens: {tokens} | Words: {len(total.split())} | Characters: {len(total)}\n".center(os.get_terminal_size().columns)) # Print info
+        else:
+            print(Fore.CYAN + "\n" + text.split("\n")[0].center(os.get_terminal_size().columns)) # Print the chapter title
+            print(Fore.CYAN + f"Index: {index} | Model: {model} | Tokens: {tokens} | Words: {len(total.split())} | Characters: {len(total)}\n".center(os.get_terminal_size().columns)) # Print info
     
     if args.dry_run:
         time.sleep(1)
@@ -153,7 +166,7 @@ def summarize(i: int) -> str:
             messages=[
                 {
                     "role": "user",
-                    "content": f"{texts[i]}{prompt}"
+                    "content": f"{text}{prompt}"
                 }
             ]
         )
@@ -188,7 +201,7 @@ def handleIndividualChapter(chapter: str | int) -> None:
     
     for i in tqdm.trange(len(indices), unit="part", desc=f"Chapter {chapter}", leave=False):
         i = indices[i]
-        summary = summarize(i)
+        summary = summarize(texts[i], i)
         
         if args.verbose:
             print(Fore.GREEN + 'Summary'.center(os.get_terminal_size().columns))
@@ -215,65 +228,101 @@ def handleIndividualChapter(chapter: str | int) -> None:
     # Manually trigger garbage collection since this is a good time to do so
     print(Fore.YELLOW + "[-] Garbage collecting...")
     gc.collect()
-    
-chaptersinarc = []
 
-# Get all chapters in the arc and add them to a list
-for i in range(len(texts)):
-    firstline = texts[i].split("\n")[0]
-    
-    if "Chapter" in firstline and "Part" not in firstline:
-        chaptersinarc.append(firstline)
-
-# If the user specified a chapter, use that instead of asking them
-if args.chapter:
-    # remove whitespace and split the string into a list
-    chapters: list = args.chapter.replace(" ", "").split(",")
-
-    if chapters is None or chapters == []:
-        print("No chapters selected. Exiting...")
-        exit()
-else:
-    # Ask the user which chapters they want to summarize
-    chapters: list | None = questionary.checkbox(
-        "Which chapter(s) do you want to summarize?",
-        choices=chaptersinarc,
-    ).ask()
-
-    if chapters is None or chapters == []:
-        print("No chapters selected. Exiting...")
-        exit()
-
-    # Get the chapter number from the chapter title
-    for i in range(len(chapters)):
-        chapters[i] = str(re.search(r"(?<=Chapter )\w+", chapters[i]).group(0))
-    
 if args.gpt4:
     warnings.warn("Using GPT-4-Turbo. Be warned that this is very expensive.")
+    
+if not args.custom_text:
+    chaptersinarc = []
 
-# Sort the chapters in ascending order
-chapters.sort()
+    # Get all chapters in the arc and add them to a list
+    for i in range(len(texts)):
+        firstline = texts[i].split("\n")[0]
+        
+        if "Chapter" in firstline and "Part" not in firstline:
+            chaptersinarc.append(firstline)
 
-print(Fore.YELLOW + "[-] " + "Handling chapter(s): " + ", ".join(chapters))
+    # If the user specified a chapter, use that instead of asking them
+    if args.chapter:
+        # remove whitespace and split the string into a list
+        chapters: list = args.chapter.replace(" ", "").split(",")
 
-if args.merge:
-    # Remove the temp folder if it already exists
-    if os.path.exists(outputdir):
-        shutil.rmtree(outputdir)
-        os.mkdir(outputdir)
+        if chapters is None or chapters == []:
+            print("No chapters selected. Exiting...")
+            exit()
+    else:
+        # Ask the user which chapters they want to summarize
+        chapters: list | None = questionary.checkbox(
+            "Which chapter(s) do you want to summarize?",
+            choices=chaptersinarc,
+        ).ask()
+
+        if chapters is None or chapters == []:
+            print("No chapters selected. Exiting...")
+            exit()
+
+        # Get the chapter number from the chapter title
+        for i in range(len(chapters)):
+            chapters[i] = str(re.search(r"(?<=Chapter )\w+", chapters[i]).group(0))
         
 
-# Handle each chapter
-for chapter in tqdm.tqdm(chapters, desc="Total progress", unit="chapter", leave=False):
-    print("-" * os.get_terminal_size().columns)
-    print(Fore.YELLOW + "[-] " + "Processing chapter " + chapter + "...")
-    handleIndividualChapter(chapter.strip())
-    print(Fore.GREEN + "[✓] " + "Processed chapter " + chapter + "!")
 
-if args.open and len(chapters) == 1 and not args.merge:
-    os.startfile(os.path.join(outputdir, f"Arc {arcnumber} Chapter {chapter} Summary.txt"))
-elif args.open and not args.merge:
-    os.startfile(outputdir)
+    # Sort the chapters in ascending order
+    chapters.sort()
+
+    print(Fore.YELLOW + "[-] " + "Handling chapter(s): " + ", ".join(chapters))
+
+    if args.merge:
+        # Remove the temp folder if it already exists
+        if os.path.exists(outputdir):
+            shutil.rmtree(outputdir)
+            os.mkdir(outputdir)
+            
+
+    # Handle each chapter
+    for chapter in tqdm.tqdm(chapters, desc="Total progress", unit="chapter", leave=False):
+        print("-" * os.get_terminal_size().columns)
+        print(Fore.YELLOW + "[-] " + "Processing chapter " + chapter + "...")
+        handleIndividualChapter(chapter.strip())
+        print(Fore.GREEN + "[✓] " + "Processed chapter " + chapter + "!")
+
+    if args.open and len(chapters) == 1 and not args.merge:
+        os.startfile(os.path.join(outputdir, f"Arc {arcnumber} Chapter {chapter} Summary.txt"))
+    elif args.open and not args.merge:
+        os.startfile(outputdir)
+
+# if args.custom_text is true:
+else:
+
+    if args.merge:
+        # Remove the temp folder if it already exists
+        if os.path.exists(outputdir):
+            shutil.rmtree(outputdir)
+            os.mkdir(outputdir)
+
+    print(Fore.YELLOW + "[-] " + "Summarizing...")
+    summary = summarize(text)
+    print(Fore.GREEN + "[✓] " + "Summarized!")
+
+    if args.verbose:
+        print(Fore.GREEN + 'Summary'.center(os.get_terminal_size().columns))
+        print(summary)
+        print(Fore.CYAN + f"Words: {len(summary.split())} | Characters: {len(summary)}".center(os.get_terminal_size().columns))
+        print("-" * os.get_terminal_size().columns)
+    
+    # Write to file
+    with open(os.path.join(outputdir, os.path.basename(args.input) + " Summary.txt"), "w+", encoding="utf-8") as file:
+        file.write(summary)
+        file.seek(0)
+        fart = file.read()
+        fart = fart.strip()
+        file.seek(0)
+        file.write(fart)
+        file.truncate()
+        file.close()
+    
+    if args.open:
+        os.startfile(os.path.join(outputdir, os.path.basename(args.input) + " Summary.txt"))
 
 # Format the chapter range
 # e.g. [1, 2, 3, 4, 5, 6, 7, 8, 9] -> "1-9"
