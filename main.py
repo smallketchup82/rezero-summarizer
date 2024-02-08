@@ -127,10 +127,10 @@ def summarize(i: int) -> str:
     tokens = len(enc.encode(total))
     
     if args.gpt4 and tokens < 124000:
-        model = "gpt-4-1106-preview"
+        model = "gpt-4-0125-preview"
         max_tokens = 4000
     elif tokens < 14385:
-        model = "gpt-3.5-turbo-1106"
+        model = "gpt-3.5-turbo-0125"
         max_tokens = 2000
     else:
         raise Exception(f"Index {str(i)} is too long")
