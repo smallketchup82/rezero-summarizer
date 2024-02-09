@@ -64,29 +64,14 @@ text = re.sub(r"Other Volumes.*", "", text, flags=re.S | re.I)
 texts = re.split(fr"(?=Arc {arcnumber} Chapter \w.*$)|△▼△▼△▼△|※　※　※　※　※　※　※　※　※　※　※　※　※", text, flags=re.M | re.I) # Split the text into chapters and parts
 texts = list(filter(None, texts)) # Remove empty strings from the list
 
-# Remove illustration captions
+# Process the text
 for i in range(len(texts)):
-    texts[i] = re.sub("Illustration from Volume.*$", "", texts[i], flags=re.M | re.I)
-    
-# Remove Character Page titles
-for i in range(len(texts)):
-    texts[i] = re.sub("Character Pages.*$", "", texts[i], flags=re.M | re.I)
-
-# Remove Volume titles
-for i in range(len(texts)):
-    texts[i] = re.sub("Web Novel Volume.*$", "", texts[i], flags=re.M | re.I)
-
-# Remove whitespace
-for i in range(len(texts)):
-    texts[i] = texts[i].strip()
-
-# Remove unncessary spaces
-for i in range(len(texts)):
-    texts[i] = re.sub(r" +", " ", texts[i])
-
-# Remove unnecessary newlines
-for i in range(len(texts)):
-    texts[i] = re.sub(r"\n+", "\n", texts[i])
+    texts[i] = re.sub("Illustration from Volume.*$", "", texts[i], flags=re.M | re.I) # Remove illustration captions
+    texts[i] = re.sub("Character Pages.*$", "", texts[i], flags=re.M | re.I) # Remove Character Page titles
+    texts[i] = re.sub("Web Novel Volume.*$", "", texts[i], flags=re.M | re.I) # Remove Volume titles
+    texts[i] = texts[i].strip() # Remove whitespace
+    texts[i] = re.sub(r" +", " ", texts[i]) # Remove unncessary spaces
+    texts[i] = re.sub(r"\n+", "\n", texts[i]) # Remove unnecessary newlines
     
 # Every chapter has a title in the first line of the text. However, the parts do not have such a title.
 # Iterate through the texts and add a title to the first line of each part, incrementing the part number each time until the next time we encounter a chapter title (e.g. "Chapter 2 Part 1").
