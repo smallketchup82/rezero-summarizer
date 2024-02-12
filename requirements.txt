@@ -7,4 +7,4 @@ python-dotenv==1.0.1
 questionary==2.0.1
 tenacity==8.2.3
 tiktoken==0.5.2
-tqdm==4.66.1
+tqdm==4.66.2
