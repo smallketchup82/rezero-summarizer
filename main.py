@@ -52,33 +52,32 @@ if args.merge:
 os.makedirs(outputdir, exist_ok=True)
 
 file = open(args.input, "r", encoding="utf-8")
-text = file.read()
+arcfile = file.read()
 
-arcnumber = re.search(r"(?<=Arc )\d+", text).group(0) # Looks for the first reference of the arc and the number, and assumes that this is the arc number
+arcnumber = re.search(r"(?<=Arc )\d+", arcfile).group(0) # Looks for the first reference of the arc and the number, and assumes that this is the arc number
 if arcnumber is None:
     raise Exception("Arc number could not be found!")
 
-# Split the whole arc into chapters and parts
-text = re.sub(fr"^.*?(?=Arc {arcnumber} Chapter 1 –).+(?=Arc {arcnumber} Chapter 1 –)", "", text, flags=re.S | re.I) # Remove the table of contents by finding the first entry in TOC and removing until that chapter starts
-text = re.sub(r"Other Volumes.*", "", text, flags=re.S | re.I)
-texts = re.split(fr"(?=Arc {arcnumber} Chapter \w.*$)|△▼△▼△▼△|※　※　※　※　※　※　※　※　※　※　※　※　※", text, flags=re.M | re.I) # Split the text into chapters and parts
-texts = list(filter(None, texts)) # Remove empty strings from the list
+arcfile = re.sub(fr"^.*?(?=Arc {arcnumber} Chapter 1 –).+(?=Arc {arcnumber} Chapter 1 –)", "", arcfile, flags=re.S | re.I) # Remove the table of contents by finding the first entry in TOC and removing until that chapter starts
+arcfile = re.sub(r"Other Volumes.*", "", arcfile, flags=re.S | re.I) # Remove the "Other Volumes" section
+chapters = re.split(fr"(?=Arc {arcnumber} Chapter \w.*$)|△▼△▼△▼△|※　※　※　※　※　※　※　※　※　※　※　※　※", arcfile, flags=re.M | re.I) # Split the text into chapters and parts
+chapters = list(filter(None, chapters)) # Remove empty strings from the list
 
 # Process the text
-for i in range(len(texts)):
-    texts[i] = re.sub("Illustration from Volume.*$", "", texts[i], flags=re.M | re.I) # Remove illustration captions
-    texts[i] = re.sub("Character Pages.*$", "", texts[i], flags=re.M | re.I) # Remove Character Page titles
-    texts[i] = re.sub("Web Novel Volume.*$", "", texts[i], flags=re.M | re.I) # Remove Volume titles
-    texts[i] = texts[i].strip() # Remove whitespace
-    texts[i] = re.sub(r" +", " ", texts[i]) # Remove unncessary spaces
-    texts[i] = re.sub(r"\n+", "\n", texts[i]) # Remove unnecessary newlines
+for i in range(len(chapters)):
+    chapters[i] = re.sub("Illustration from Volume.*$", "", chapters[i], flags=re.M | re.I) # Remove illustration captions
+    chapters[i] = re.sub("Character Pages.*$", "", chapters[i], flags=re.M | re.I) # Remove Character Page titles
+    chapters[i] = re.sub("Web Novel Volume.*$", "", chapters[i], flags=re.M | re.I) # Remove Volume titles
+    chapters[i] = chapters[i].strip() # Remove whitespace
+    chapters[i] = re.sub(r" +", " ", chapters[i]) # Remove unncessary spaces
+    chapters[i] = re.sub(r"\n+", "\n", chapters[i]) # Remove unnecessary newlines
     
 # Every chapter has a title in the first line of the text. However, the parts do not have such a title.
 # Iterate through the texts and add a title to the first line of each part, incrementing the part number each time until the next time we encounter a chapter title (e.g. "Chapter 2 Part 1").
 part = 1
 chapter = "0"
-for i in range(len(texts)):
-    firstline = texts[i].split("\n")[0]
+for i in range(len(chapters)):
+    firstline = chapters[i].split("\n")[0]
     
     if "Chapter" in firstline and "Part" not in firstline:
         part = 1
@@ -86,18 +85,18 @@ for i in range(len(texts)):
         
     if "Chapter" not in firstline:
         part += 1
-        texts[i] = f"Chapter {chapter} Part {part}\n{texts[i]}"
+        chapters[i] = f"Chapter {chapter} Part {part}\n{chapters[i]}"
 
 # Remove info proceeding the chapter title
-for i in range(len(texts)):
-    firstline = texts[i].split("\n")[0]
+for i in range(len(chapters)):
+    firstline = chapters[i].split("\n")[0]
     if "Chapter" in firstline:
-        texts[i] = re.sub(fr"(Arc {arcnumber} Chapter \w+ – [^\n\r]*\n?)(.* ― Complete\n?)", r"\1", texts[i], flags=re.S | re.I)
+        chapters[i] = re.sub(fr"(Arc {arcnumber} Chapter \w+ – [^\n\r]*\n?)(.* ― Complete\n?)", r"\1", chapters[i], flags=re.S | re.I)
         
 # Dump the processed text into a file if requested, for debugging purposes
 if args.dump:
     with open(os.path.join(outputdir, f"Arc {arcnumber} Processed.txt"), "w", encoding="utf-8") as file:
-        file.write("\n\n".join(texts))
+        file.write("\n\n".join(chapters))
         print("Dumped processed text to file")
         exit()
 
@@ -108,7 +107,7 @@ def summarize(i: int) -> str:
         i (int): The index of the part of the chapter to summarize
     """
     prompt = "\n<END>\n\nCreate a comprehensive plot synopsis of this part of a chapter from a book.\nMake your plot synopsis as lengthy and detailed as possible."
-    total = texts[i] + prompt
+    total = chapters[i] + prompt
     tokens = len(enc.encode(total))
     
     if args.gpt4 and tokens < 124000:
@@ -121,7 +120,7 @@ def summarize(i: int) -> str:
         raise Exception(f"Index {str(i)} is too long")
     
     if args.verbose:
-        print(Fore.CYAN + "\n" + texts[i].split("\n")[0].center(os.get_terminal_size().columns)) # Print the chapter title
+        print(Fore.CYAN + "\n" + chapters[i].split("\n")[0].center(os.get_terminal_size().columns)) # Print the chapter title
         print(Fore.CYAN + f"Index: {i} | Model: {model} | Tokens: {tokens} | Words: {len(total.split())} | Characters: {len(total)}\n".center(os.get_terminal_size().columns)) # Print info
     
     if args.dry_run:
@@ -138,7 +137,7 @@ def summarize(i: int) -> str:
             messages=[
                 {
                     "role": "user",
-                    "content": f"{texts[i]}{prompt}"
+                    "content": f"{chapters[i]}{prompt}"
                 }
             ]
         )
@@ -158,8 +157,8 @@ def handleIndividualChapter(chapter: str | int) -> None:
     """
     indices = []
     
-    for i in range(len(texts)):
-        if f"Chapter {chapter} " in texts[i]:
+    for i in range(len(chapters)):
+        if f"Chapter {chapter} " in chapters[i]:
             indices.append(i)
         else:
             continue
@@ -183,7 +182,7 @@ def handleIndividualChapter(chapter: str | int) -> None:
         
             
         # Append to the summary variable
-        firstline: str = texts[i].split("\n")[0]
+        firstline: str = chapters[i].split("\n")[0]
         fullsummary += f"{firstline}\n{summary}\n\n\n"
             
     # Write to file
@@ -204,8 +203,8 @@ def handleIndividualChapter(chapter: str | int) -> None:
 chaptersinarc = []
 
 # Get all chapters in the arc and add them to a list
-for i in range(len(texts)):
-    firstline = texts[i].split("\n")[0]
+for i in range(len(chapters)):
+    firstline = chapters[i].split("\n")[0]
     
     if "Chapter" in firstline and "Part" not in firstline:
         chaptersinarc.append(firstline)
